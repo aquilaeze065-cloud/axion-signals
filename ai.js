@@ -83,21 +83,42 @@ async function generateAISignals(forced=false){
   if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Scanning live prices · Calculating momentum · Generating signals...</span>';
   const session=getSession();
   const prices=buildPriceContext();
-  const prompt=`You are a professional algorithmic forex scalping system. Analyze these LIVE market prices and generate precise M15/M30 scalp signals.
+  const prompt=`You are an elite professional forex scalping analyst. Your job is to analyze live market conditions and ONLY generate signals when ALL confluence factors align perfectly.
 
 LIVE PRICES (${new Date().toUTCString()}):
 ${prices}
 
-ACTIVE SESSION: ${session.name} (${session.quality} scalp conditions)
+ACTIVE SESSION: ${session.name} (${session.quality} conditions)
 
-IMPORTANT RISK RULES:
-- Place SL beyond last swing high/low (structure-based, not pip-based)
-- Account for spread: EUR/USD ~1pip, Gold ~$0.5, Silver ~$0.03
-- Use wider SL during volatile sessions (London/NY overlap)
-- Only take trades where RR is at least 1:1.5
-- If structure is unclear, DO NOT generate that signal
+YOUR SIGNAL RULES — STRICT:
+1. ONLY generate a signal if ALL of these align:
+   ✓ EMA9 crossed EMA21 (trend confirmation)
+   ✓ RSI between 40-60 (not overbought/oversold)
+   ✓ MACD histogram showing momentum
+   ✓ Price respecting Bollinger Band
+   ✓ Price above/below VWAP (direction confirmation)
+   ✓ Clear market structure (swing high/low visible)
+   ✓ RR ratio minimum 1:2
 
-Generate EXACTLY 4 scalp signals. Respond with valid JSON only, no other text:
+2. IF conditions are NOT met → return empty signals array with verdict "NO SIGNAL"
+
+3. NEVER force a signal. If market is choppy, ranging or unclear → NO SIGNAL
+
+4. SL PLACEMENT:
+   - Always beyond last swing high (for SELL) or swing low (for BUY)
+   - Minimum 12 pips for forex, $10 for Gold, $0.25 for Silver
+   - Account for spread before entry
+
+5. QUALITY SCORE (only generate if score >= 75):
+   - EMA Cross confirmed: +20pts
+   - RSI in safe zone (40-60): +15pts
+   - MACD momentum confirmed: +15pts
+   - BB position correct: +15pts
+   - VWAP alignment: +15pts
+   - Clean market structure: +20pts
+   - Total must be 75+ to generate signal
+
+Respond ONLY with valid JSON, no markdown, no explanation:
 {
   "signals": [
     {
@@ -106,38 +127,32 @@ Generate EXACTLY 4 scalp signals. Respond with valid JSON only, no other text:
       "dir": "buy",
       "tf": "M15",
       "entry": 1.15610,
-      "tp": 1.15720,
-      "sl": 1.15550,
-      "quality_score": 88,
-      "rr": "1:1.8",
-      "reason": "EMA9 crossed above EMA21, RSI 58 rising, MACD bullish crossover, price above VWAP",
-      "indicators": ["EMA Cross","RSI 58","MACD+","VWAP"],
-      "duration": "15-20 min"
+      "tp": 1.15850,
+      "sl": 1.15450,
+      "quality_score": 85,
+      "rr": "1:2.1",
+      "reason": "EMA9 crossed above EMA21 on M15, RSI at 52 rising, MACD bullish cross, price above VWAP, clear structure above 1.1545 support",
+      "indicators": ["EMA Cross","RSI 52","MACD+","VWAP","Structure"],
+      "duration": "20-35 min",
+      "session_bias": "London bullish"
     }
   ],
   "verdict": "STRONG",
-  "summary": "London session showing clean momentum. Gold leading risk-on sentiment.",
-  "avoid": "USD/CHF choppy · NZD/USD no momentum"
+  "summary": "Clear bullish momentum on EUR/USD with full confluence. Gold showing reversal setup.",
+  "avoid": "USD/CHF — ranging · NZD/USD — no momentum",
+  "market_condition": "TRENDING"
 }
 
-Rules:
-- Use EXACT live prices above as basis for entry
-- TP forex: 15-25 pips. Gold: $12-20. Silver: $0.30-0.50
-- SL forex: 10-15 pips (place BELOW/ABOVE last swing high/low). Gold: $8-14. Silver: $0.20-0.35
-- SL must be placed BEYOND market structure (swing high/low) NOT just a pip value
-- If recent candle range is large, widen SL to avoid noise — never place SL inside normal candle range
-- RR must be minimum 1:1.5, target 1:2 or higher
-- quality_score: 60-95 based on confluence:
-  * Trend alignment (+20pts)
-  * RSI confirmation (+15pts) 
-  * MACD signal (+15pts)
-  * BB position (+15pts)
-  * VWAP above/below (+15pts)
-  * Volume confirmation (+20pts)
-  * Score = sum of confirmed factors
-- Include at least 1 Gold or Silver signal
-- Verdict: POOR / MODERATE / STRONG / EXCELLENT
-- JSON only, no markdown`;
+If NO strong signals exist, return:
+{
+  "signals": [],
+  "verdict": "NO SIGNAL",
+  "summary": "Market conditions not ideal. Waiting for better setup.",
+  "avoid": "All pairs showing chop — stay out",
+  "market_condition": "CHOPPY"
+}
+
+REMEMBER: A missed trade is better than a bad trade. Quality over quantity.`;
 
   try{
     const res=await fetch('/api/groq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'You are a professional forex scalping AI. Always respond with valid JSON only, no markdown.'},{role:'user',content:prompt}]})});
@@ -146,6 +161,23 @@ Rules:
     const raw=data.choices?.[0]?.message?.content||'';
     const json=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(json);
+    // Handle NO SIGNAL case
+    if(parsed.verdict==='NO SIGNAL'||!parsed.signals||parsed.signals.length===0){
+      console.log('[AI] No strong signals — market conditions not ideal');
+      if(aiText)aiText.innerHTML=`
+        <div style="text-align:center;padding:20px">
+          <div style="font-size:32px;margin-bottom:10px">⏳</div>
+          <div style="font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:700;margin-bottom:8px">NO STRONG SIGNALS</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">${parsed.summary||'Market conditions not ideal. Waiting for better setup.'}</div>
+          <div style="font-size:11px;color:var(--red);font-family:var(--mono)">⚠ Avoid: ${parsed.avoid||'All pairs — stay patient'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:10px;font-family:var(--mono)">Next scan in 15 minutes · ${new Date().toUTCString()}</div>
+        </div>`;
+      const vEl=document.getElementById('aiVerdict');
+      if(vEl){vEl.textContent='NO SIGNAL';vEl.className='intel-val red';}
+      if(btn){btn.disabled=false;btn.innerHTML='✦ Generate AI Signals';}
+      aiRunning=false;
+      return;
+    }
     renderAISignals(parsed);
     if(typeof window.buildSignalList!=='undefined')window.buildSignalList(parsed.signals);
     if(typeof alertNewSignals!=='undefined')alertNewSignals(parsed.signals);
