@@ -148,9 +148,21 @@ function doLogout(){sessionStorage.removeItem('axion_session');window.location.h
       <div class="check-item red"><span class="chk">✗</span> Minor Resistance Ahead</div>
     </div>
     <div class="stats-strip">
-      <div class="stat-box"><div class="stat-box-label">Win Rate</div><div class="stat-box-val green">87.4%</div><div class="stat-mini-chart green-line"></div></div>
-      <div class="stat-box"><div class="stat-box-label">Avg. R/R</div><div class="stat-box-val red">1:1.7</div><div class="stat-mini-chart red-line"></div></div>
-      <div class="stat-box"><div class="stat-box-label">Max Drawdown</div><div class="stat-box-val gold-text">3.2%</div><div class="stat-box-bar"><div class="stat-bar-fill" style="width:32%"></div></div></div>
+      <div class="stat-box">
+        <div class="stat-box-label">Last 30 Trades Win Rate</div>
+        <div class="stat-box-val green" id="liveWinRate">Tracking...</div>
+        <div class="stat-box-sublabel">Live tracked performance</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">Avg. Risk/Reward</div>
+        <div class="stat-box-val red" id="liveRR">Tracking...</div>
+        <div class="stat-box-sublabel">Based on actual signals</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">Signals This Week</div>
+        <div class="stat-box-val gold-text" id="liveSignals">0</div>
+        <div class="stat-box-sublabel">AI generated signals</div>
+      </div>
     </div>
   </main>
   <aside class="col-right">
@@ -186,6 +198,7 @@ function doLogout(){sessionStorage.removeItem('axion_session');window.location.h
     </div>
   </aside>
 </div>
+<script src="performance.js"></script>
 <script src="alerts.js"></script>
 <script src="signals.js"></script>
 <script src="ai.js"></script>
