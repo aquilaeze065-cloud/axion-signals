@@ -90,6 +90,13 @@ ${prices}
 
 ACTIVE SESSION: ${session.name} (${session.quality} scalp conditions)
 
+IMPORTANT RISK RULES:
+- Place SL beyond last swing high/low (structure-based, not pip-based)
+- Account for spread: EUR/USD ~1pip, Gold ~$0.5, Silver ~$0.03
+- Use wider SL during volatile sessions (London/NY overlap)
+- Only take trades where RR is at least 1:1.5
+- If structure is unclear, DO NOT generate that signal
+
 Generate EXACTLY 4 scalp signals. Respond with valid JSON only, no other text:
 {
   "signals": [
@@ -115,8 +122,11 @@ Generate EXACTLY 4 scalp signals. Respond with valid JSON only, no other text:
 
 Rules:
 - Use EXACT live prices above as basis for entry
-- TP forex: 8-14 pips. Gold: $6-10. Silver: $0.15-0.25
-- SL forex: 5-8 pips. Gold: $4-6. Silver: $0.10-0.15
+- TP forex: 15-25 pips. Gold: $12-20. Silver: $0.30-0.50
+- SL forex: 10-15 pips (place BELOW/ABOVE last swing high/low). Gold: $8-14. Silver: $0.20-0.35
+- SL must be placed BEYOND market structure (swing high/low) NOT just a pip value
+- If recent candle range is large, widen SL to avoid noise — never place SL inside normal candle range
+- RR must be minimum 1:1.5, target 1:2 or higher
 - quality_score: 60-95 based on confluence:
   * Trend alignment (+20pts)
   * RSI confirmation (+15pts) 
