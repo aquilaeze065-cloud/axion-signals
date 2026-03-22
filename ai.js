@@ -139,6 +139,10 @@ Rules:
     renderAISignals(parsed);
     if(typeof window.buildSignalList!=='undefined')window.buildSignalList(parsed.signals);
     if(typeof alertNewSignals!=='undefined')alertNewSignals(parsed.signals);
+    if(typeof window.addTrade!=='undefined'&&parsed.signals){
+      parsed.signals.forEach(s=>window.addTrade(s));
+    }
+    if(typeof window.updateStatsDisplay!=='undefined')window.updateStatsDisplay();
     totalSignals+=parsed.signals?.length||0;
     const sc=document.getElementById('signalCount');if(sc)sc.textContent=totalSignals;
     const vEl=document.getElementById('aiVerdict');
