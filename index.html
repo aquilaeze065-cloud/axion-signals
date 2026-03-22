@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Axion Signals AI — Live Trading Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<script>
+(function(){const s=sessionStorage.getItem('axion_session');if(!s){window.location.href='login.html';return;}try{const p=JSON.parse(s);if(p.expires<Date.now()){sessionStorage.removeItem('axion_session');window.location.href='login.html';}}catch(e){window.location.href='login.html';}})();
+function doLogout(){sessionStorage.removeItem('axion_session');window.location.href='login.html';}
+</script>
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="ax-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M4 28L14 4h4L28 28h-4.5l-2.5-6H11l-2.5 6H4z" fill="url(#axGrad)"/><path d="M12.5 18l3.5-8 3.5 8h-7z" fill="#1a1f2e"/><defs><linearGradient id="axGrad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB800"/><stop offset="1" stop-color="#FF6B00"/></linearGradient></defs></svg>
+      <div class="ax-logo-text"><span>Axion</span> Signals <strong>AI</strong></div>
+    </div>
+    <div class="topbar-meta">
+      <div class="meta-item"><span class="meta-dot green"></span><span class="meta-label">Market:</span><span class="meta-val" id="sessionBadge">Loading...</span></div>
+      <div class="meta-sep">|</div>
+      <div class="meta-item"><span class="meta-label">Risk Per Trade:</span><span class="meta-val">1%</span></div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button id="testAlertBtn" class="hdr-btn gold" onclick="testAlert()">⚡ TEST</button>
+    <button id="soundBtn" class="hdr-btn" onclick="toggleSound()">🔊</button>
+    <button id="alertBellBtn" class="hdr-btn" onclick="toggleAlerts()">🔔</button>
+    <div class="account-badge"><span class="coin-icon">◈</span><span id="accountUser">MEMBER</span></div>
+    <div class="avatar" onclick="doLogout()" title="Logout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+  </div>
+</header>
+<div class="ticker-wrap">
+  <div class="tradingview-widget-container" style="height:38px">
+    <div class="tradingview-widget-container__widget"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+    {"symbols":[{"proName":"FX:EURUSD","title":"EUR/USD"},{"proName":"FX:GBPUSD","title":"GBP/USD"},{"proName":"FX:USDJPY","title":"USD/JPY"},{"proName":"FX:AUDUSD","title":"AUD/USD"},{"proName":"FX:USDCAD","title":"USD/CAD"},{"proName":"TVC:GOLD","title":"XAU/USD"},{"proName":"TVC:SILVER","title":"XAG/USD"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
+    </script>
+  </div>
+</div>
+<div class="main-layout">
+  <aside class="col-left">
+    <div class="panel-header"><span class="panel-title">Live Signals</span><div class="panel-dots"><span></span><span></span><span></span></div></div>
+    <div class="signal-active" id="activeSignal">
+      <div class="sig-top"><span class="sig-pair" id="activePair">XAUUSD</span><div class="sig-icons"><span class="live-dot-sm"></span></div></div>
+      <div class="sig-trend" id="activeTrend">Trend: <span class="green">Bullish</span> | M15</div>
+      <div class="sig-dir-row"><span class="dir-pill buy" id="activeDir">BUY</span><span class="sig-entry-label">Entry: <strong id="activeEntry">--</strong></span></div>
+      <div class="sig-levels"><span class="sl-label">SL: <span id="activeSL" class="red">--</span></span><span class="tp-label">TP: <span id="activeTP" class="green">--</span></span></div>
+      <div class="sig-rr">RISK/REWARD : <span id="activeRR" class="gold-text">1:1.7</span></div>
+      <div class="sig-conf-row"><span class="conf-check green">✓</span><span class="conf-text">AI Confidence: <strong id="activeConf" class="green">88%</strong></span></div>
+      <div class="sig-action-row"><button class="exec-btn" onclick="executeTrade()">Execute Trade</button><button class="ignore-btn" onclick="ignoreSignal()">Ignore</button></div>
+    </div>
+    <div class="signal-list" id="signalList"></div>
+    <button class="gen-btn" id="generateBtn" onclick="generateAIAnalysis()">✦ Generate AI Signals</button>
+    <div class="ai-output" id="aiOutput" style="display:none">
+      <div class="ai-output-header"><span class="ai-chip">AI</span> Analysis Report</div>
+      <div id="aiText" style="font-size:11px;line-height:1.6;color:#aab;margin-top:8px"></div>
+    </div>
+  </aside>
+  <main class="col-center">
+    <div class="panel-header"><span class="panel-title" id="chartTitle">XAUUSD 15m Chart</span><div class="panel-dots"><span></span><span></span><span></span></div></div>
+    <div class="chart-controls">
+      <div class="pair-tabs">
+        <button class="ptab active" onclick="switchPair('TVC:GOLD','XAUUSD',this)">XAU/USD</button>
+        <button class="ptab" onclick="switchPair('FX:EURUSD','EURUSD',this)">EUR/USD</button>
+        <button class="ptab" onclick="switchPair('FX:GBPUSD','GBPUSD',this)">GBP/USD</button>
+        <button class="ptab" onclick="switchPair('FX:USDJPY','USDJPY',this)">USD/JPY</button>
+        <button class="ptab" onclick="switchPair('FX:AUDUSD','AUDUSD',this)">AUD/USD</button>
+        <button class="ptab" onclick="switchPair('FX:USDCAD','USDCAD',this)">USD/CAD</button>
+        <button class="ptab" onclick="switchPair('TVC:SILVER','XAGUSD',this)">XAG/USD</button>
+        <button class="ptab" onclick="switchPair('FX:EURGBP','EURGBP',this)">EUR/GBP</button>
+      </div>
+      <div class="tf-tabs">
+        <button class="tftab active" onclick="switchTF('15',this)">15m</button>
+        <button class="tftab" onclick="switchTF('30',this)">30m</button>
+        <button class="tftab" onclick="switchTF('60',this)">1h</button>
+        <button class="tftab" onclick="switchTF('240',this)">H4</button>
+      </div>
+    </div>
+    <div class="chart-box" id="tv_chart_container"></div>
+    <div class="ai-checklist" id="aiChecklist">
+      <div class="check-item green"><span class="chk">✓</span> Trend Confirmed</div>
+      <div class="check-item green"><span class="chk">✓</span> RSI Above 50</div>
+      <div class="check-item green"><span class="chk">✓</span> Strong Volume</div>
+      <div class="check-item red"><span class="chk">✗</span> Minor Resistance Ahead</div>
+    </div>
+    <div class="stats-strip">
+      <div class="stat-box"><div class="stat-box-label">Win Rate</div><div class="stat-box-val green">87.4%</div><div class="stat-mini-chart green-line"></div></div>
+      <div class="stat-box"><div class="stat-box-label">Avg. R/R</div><div class="stat-box-val red">1:1.7</div><div class="stat-mini-chart red-line"></div></div>
+      <div class="stat-box"><div class="stat-box-label">Max Drawdown</div><div class="stat-box-val gold-text">3.2%</div><div class="stat-box-bar"><div class="stat-bar-fill" style="width:32%"></div></div></div>
+    </div>
+  </main>
+  <aside class="col-right">
+    <div class="panel-header"><span class="panel-title">AI Analysis</span><div class="panel-dots"><span></span><span></span><span></span></div></div>
+    <div class="ai-score-box">
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 120 120" width="120" height="120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#1e2535" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="url(#gaugeGrad)" stroke-width="10" stroke-dasharray="314" stroke-dashoffset="78" stroke-linecap="round" transform="rotate(-90 60 60)" id="gaugeArc"/>
+          <defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ff4444"/><stop offset="50%" stop-color="#ffbb00"/><stop offset="100%" stop-color="#00e676"/></linearGradient></defs>
+        </svg>
+        <div class="gauge-center"><div class="gauge-label">AI Score</div><div class="gauge-val" id="aiScore">88%</div></div>
+      </div>
+    </div>
+    <div class="analysis-list">
+      <div class="analysis-item green"><span class="a-check">✓</span><span class="a-label">Volatility:</span><span class="a-val">High</span></div>
+      <div class="analysis-item green"><span class="a-check">✓</span><span class="a-label">Spread:</span><span class="a-val">Normal</span></div>
+      <div class="analysis-item green"><span class="a-check">✓</span><span class="a-label">Liquidity Sweep:</span><span class="a-val">Yes</span></div>
+      <div class="analysis-item gold"><span class="a-check">◎</span><span class="a-label">Session Bias:</span><span class="a-bar"><div class="a-bar-fill" style="width:72%"></div></span></div>
+      <div class="analysis-item gold"><span class="a-check">◎</span><span class="a-label">Momentum:</span><span class="a-val" id="scalpCondition">79%</span></div>
+      <div class="analysis-item grey"><span class="a-check">○</span><span class="a-label">Risk Level:</span><span class="a-val">Moderate</span></div>
+    </div>
+    <div class="intel-row"><span class="intel-label">AI Verdict</span><span class="intel-val blue" id="aiVerdict">ANALYZING...</span></div>
+    <div class="intel-row"><span class="intel-label">Next News</span><span class="intel-val gold-text" id="newsCountdown">--h --m</span></div>
+    <div class="intel-sub" id="newsEventName">Calculating...</div>
+    <div class="panel-header" style="margin-top:16px"><span class="panel-title">Alert Settings</span><div class="panel-dots"><span></span><span></span><span></span></div></div>
+    <div class="alert-settings">
+      <div class="alert-row"><label class="al-check"><input type="checkbox" checked/> XAUUSD</label><div class="al-bar-wrap"><div class="al-bar-fill" style="width:85%"></div></div><span class="al-pct">85%</span></div>
+      <div class="alert-row"><label class="al-check"><input type="checkbox" checked/> XAGUSD</label><div class="al-bar-wrap"><div class="al-bar-fill" style="width:70%"></div></div><span class="al-pct">70%</span></div>
+      <div class="alert-row"><label class="al-check"><input type="checkbox" checked/> GBPUSD</label><div class="al-bar-wrap"><div class="al-bar-fill green" style="width:60%"></div></div><span class="al-pct">60%</span></div>
+      <div class="alert-row"><label class="al-check"><input type="checkbox" checked/> USDJPY</label><div class="al-bar-wrap"><div class="al-bar-fill green" style="width:55%"></div></div><span class="al-pct">55%</span></div>
+      <div class="alert-channels"><label class="al-check"><input type="checkbox" checked/> Telegram</label><label class="al-check"><input type="checkbox"/> Email</label><label class="al-check"><input type="checkbox" checked/> Push</label></div>
+    </div>
+  </aside>
+</div>
+<script src="alerts.js"></script>
+<script src="signals.js"></script>
+<script src="ai.js"></script>
+<script src="news.js"></script>
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+var _tvSym='TVC:GOLD',_tvTF='15',_tvWidget=null;
+function initChart(){
+  var el=document.getElementById('tv_chart_container');
+  if(!el)return;
+  if(typeof TradingView==='undefined'){setTimeout(initChart,800);return;}
+  el.innerHTML='';
+  _tvWidget=new TradingView.widget({autosize:true,symbol:_tvSym,interval:_tvTF,timezone:'Etc/UTC',theme:'dark',style:'1',locale:'en',toolbar_bg:'#131722',enable_publishing:false,allow_symbol_change:true,container_id:'tv_chart_container',
+    studies:['RSI@tv-basicstudies','MACD@tv-basicstudies','MAExp@tv-basicstudies','BB@tv-basicstudies','VWAP@tv-basicstudies'],
+    overrides:{'mainSeriesProperties.candleStyle.upColor':'#00e676','mainSeriesProperties.candleStyle.downColor':'#ff3d5a','mainSeriesProperties.candleStyle.borderUpColor':'#00e676','mainSeriesProperties.candleStyle.borderDownColor':'#ff3d5a','mainSeriesProperties.candleStyle.wickUpColor':'#00b85a','mainSeriesProperties.candleStyle.wickDownColor':'#cc1f3a','paneProperties.background':'#131722','paneProperties.backgroundType':'solid','paneProperties.vertGridProperties.color':'#1e2535','paneProperties.horzGridProperties.color':'#1e2535','scalesProperties.textColor':'#5a6a8a'}
+  });
+}
+function switchPair(sym,label,btn){document.querySelectorAll('.ptab').forEach(function(b){b.classList.remove('active');});if(btn)btn.classList.add('active');_tvSym=sym;document.getElementById('chartTitle').textContent=label+' '+(_tvTF==='15'?'15m':_tvTF==='30'?'30m':_tvTF==='60'?'1h':'4h')+' Chart';initChart();}
+function switchTF(tf,btn){document.querySelectorAll('.tftab').forEach(function(b){b.classList.remove('active');});if(btn)btn.classList.add('active');_tvTF=tf;initChart();}
+function setActiveSignal(s){
+  if(!s)return;
+  var dec=s.sym==='USDJPY'?3:s.sym==='XAUUSD'?2:s.sym==='XAGUSD'?3:5;
+  document.getElementById('activePair').textContent=s.sym;
+  document.getElementById('activeEntry').textContent=parseFloat(s.entry).toFixed(dec);
+  document.getElementById('activeTP').textContent=parseFloat(s.tp).toFixed(dec);
+  document.getElementById('activeSL').textContent=parseFloat(s.sl).toFixed(dec);
+  document.getElementById('activeRR').textContent=s.rr;
+  document.getElementById('activeConf').textContent=s.confidence+'%';
+  document.getElementById('activeDir').textContent=s.dir.toUpperCase();
+  document.getElementById('activeDir').className='dir-pill '+(s.dir==='buy'?'buy':'sell');
+  document.getElementById('activeTrend').innerHTML='Trend: <span class="'+(s.dir==='buy'?'green':'red')+'">'+(s.dir==='buy'?'Bullish':'Bearish')+'</span> | M15';
+  var score=s.confidence||88;
+  document.getElementById('aiScore').textContent=score+'%';
+  var arc=document.getElementById('gaugeArc');
+  if(arc)arc.setAttribute('stroke-dashoffset',314*(1-score/100)+20);
+  var symMap={EURUSD:'FX:EURUSD',GBPUSD:'FX:GBPUSD',USDJPY:'FX:USDJPY',AUDUSD:'FX:AUDUSD',USDCAD:'FX:USDCAD',USDCHF:'FX:USDCHF',EURGBP:'FX:EURGBP',NZDUSD:'FX:NZDUSD',XAUUSD:'TVC:GOLD',XAGUSD:'TVC:SILVER'};
+  if(symMap[s.sym]){_tvSym=symMap[s.sym];initChart();}
+}
+function buildSignalList(signals){
+  var list=document.getElementById('signalList');
+  if(!list||!signals)return;
+  if(signals.length>0)setActiveSignal(signals[0]);
+  list.innerHTML=signals.slice(1).map(function(s){
+    var dec=s.sym==='USDJPY'?3:s.sym==='XAUUSD'?2:s.sym==='XAGUSD'?3:5;
+    return '<div class="sig-list-item" onclick="setActiveSignal('+JSON.stringify(s).replace(/"/g,"&quot;")+')">'
+      +'<div class="sli-left"><span class="sli-pair">'+(s.pair||s.sym)+'</span>'
+      +'<span class="dir-pill-sm '+s.dir+'">'+s.dir.toUpperCase()+'</span></div>'
+      +'<div class="sli-right"><span class="sli-price">'+parseFloat(s.entry).toFixed(dec)+'</span>'
+      +'<span class="sli-conf">'+s.confidence+'%</span></div></div>';
+  }).join('');
+}
+window.buildSignalList=buildSignalList;
+function executeTrade(){
+  var sig={pair:document.getElementById('activePair').textContent,sym:document.getElementById('activePair').textContent,dir:document.getElementById('activeDir').textContent.toLowerCase(),tf:'M'+_tvTF,entry:document.getElementById('activeEntry').textContent,tp:document.getElementById('activeTP').textContent,sl:document.getElementById('activeSL').textContent,confidence:parseInt(document.getElementById('activeConf').textContent)||88,rr:document.getElementById('activeRR').textContent,reason:'AI confirmed — execute with discipline',duration:'15-20 min'};
+  var txt=sig.pair+' '+sig.dir.toUpperCase()+'\nEntry: '+sig.entry+'\nTP: '+sig.tp+'\nSL: '+sig.sl+'\nRR: '+sig.rr;
+  navigator.clipboard.writeText(txt).catch(function(){});
+  fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sig)}).then(function(){showExecFeedback('✓ Sent to Telegram!','green');}).catch(function(){showExecFeedback('✓ Copied!','gold');});
+}
+function showExecFeedback(msg,color){var btn=document.querySelector('.exec-btn');var orig=btn.textContent;btn.textContent=msg;btn.style.background=color==='green'?'#00aa44':'#cc8800';setTimeout(function(){btn.textContent=orig;btn.style.background='';},2000);}
+function ignoreSignal(){var a=document.querySelector('.signal-active');if(a){a.style.opacity='0.4';a.style.pointerEvents='none';}}
+window.addEventListener('load',function(){
+  try{var u=document.getElementById('accountUser');if(u)u.textContent=JSON.parse(sessionStorage.getItem('axion_session')).username.toUpperCase();}catch(e){}
+  setTimeout(initChart,500);
+});
+</script>
+</body>
+</html>

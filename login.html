@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Axion Signals - Member Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;background:#08040f;color:#e8d4ff;font-family:"Barlow",sans-serif;}
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
+    body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(153,68,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(153,68,255,0.05) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+    body::after{content:"";position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(153,68,255,0.12) 0%,transparent 60%);pointer-events:none;animation:orb 10s ease-in-out infinite;}
+    @keyframes orb{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(40px)}}
+    .wrap{position:relative;z-index:10;width:100%;max-width:420px;padding:20px;}
+    .logo{text-align:center;margin-bottom:40px;}
+    .diamond{display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;background:linear-gradient(135deg,#9944ff,#6622cc);transform:rotate(45deg);border-radius:12px;margin-bottom:20px;box-shadow:0 0 40px rgba(153,68,255,0.5);}
+    .diamond span{transform:rotate(-45deg);font-family:"Space Mono",monospace;font-size:18px;font-weight:700;color:#fff;}
+    .logo h1{font-family:"Barlow Condensed",sans-serif;font-size:38px;font-weight:900;letter-spacing:8px;background:linear-gradient(135deg,#fff,#ffcc00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .logo p{font-family:"Space Mono",monospace;font-size:10px;color:#9966cc;letter-spacing:3px;margin-top:6px;}
+    .card{background:linear-gradient(135deg,rgba(16,8,32,0.97),rgba(24,12,48,0.97));border:1px solid rgba(153,68,255,0.3);border-radius:16px;padding:36px;box-shadow:0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(153,68,255,0.1);}
+    .badge{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,204,0,0.06);border:1px solid rgba(255,204,0,0.2);margin-bottom:28px;font-family:"Space Mono",monospace;font-size:9px;color:#ffcc00;letter-spacing:2px;}
+    .label{display:block;font-family:"Space Mono",monospace;font-size:10px;font-weight:700;letter-spacing:2px;color:#9966cc;text-transform:uppercase;margin-bottom:8px;}
+    .input{width:100%;padding:13px 16px;background:rgba(153,68,255,0.07);border:1px solid rgba(153,68,255,0.2);border-radius:8px;color:#e8d4ff;font-family:"Space Mono",monospace;font-size:13px;outline:none;transition:all .2s;margin-bottom:20px;}
+    .input:focus{border-color:#9944ff;background:rgba(153,68,255,0.12);box-shadow:0 0 0 3px rgba(153,68,255,0.15);}
+    .input::placeholder{color:#4a2a6a;}
+    .btn{width:100%;padding:15px;background:linear-gradient(135deg,#9944ff,#6622cc);border:none;border-radius:8px;color:#fff;font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(153,68,255,0.35);}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(153,68,255,0.55);}
+    .btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .err{display:none;margin-top:14px;padding:10px 14px;background:rgba(255,34,68,0.1);border:1px solid rgba(255,34,68,0.3);border-radius:7px;font-family:"Space Mono",monospace;font-size:11px;color:#ff2244;text-align:center;}
+    .err.show{display:block;}
+    .footer{text-align:center;margin-top:22px;font-family:"Space Mono",monospace;font-size:9px;color:#4a2a6a;letter-spacing:1px;}
+    .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:7px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <div class="diamond"><span>AX</span></div>
+    <h1>AXION</h1>
+    <p>SIGNALS &middot; MEMBERS PORTAL</p>
+  </div>
+  <div class="card">
+    <div class="badge"><span>&#9672; EXCLUSIVE MEMBER ACCESS &#9672;</span></div>
+    <label class="label" for="u">Username</label>
+    <input class="input" type="text" id="u" placeholder="Enter your username"/>
+    <label class="label" for="p">Password</label>
+    <input class="input" type="password" id="p" placeholder="Enter your password"/>
+    <button class="btn" id="btn" onclick="login()">ENTER SIGNALS</button>
+    <div class="err" id="err">&#9888; Invalid username or password</div>
+    <div class="footer" style="margin-top:20px">&#9672; AXION SIGNALS &middot; Not financial advice</div>
+  </div>
+</div>
+<script>
+var M={"admin":"axion2026","chris":"signals123","member1":"trade2026","member2":"forex2026"};
+function login(){
+  var u=document.getElementById("u").value.trim().toLowerCase();
+  var p=document.getElementById("p").value.trim();
+  var btn=document.getElementById("btn");
+  var err=document.getElementById("err");
+  if(!u||!p){err.textContent="Please enter username and password";err.classList.add("show");return;}
+  btn.disabled=true;btn.innerHTML="<span class='spin'></span>VERIFYING...";err.classList.remove("show");
+  setTimeout(function(){
+    if(M[u]&&M[u]===p){
+      sessionStorage.setItem("axion_session",JSON.stringify({username:u,expires:Date.now()+86400000}));
+      btn.innerHTML="&#10003; ACCESS GRANTED";btn.style.background="linear-gradient(135deg,#00cc6a,#009944)";
+      setTimeout(function(){window.location.href="index.html";},800);
+    }else{
+      btn.disabled=false;btn.innerHTML="ENTER SIGNALS";
+      err.textContent="&#9888; Invalid username or password";err.classList.add("show");
+      document.querySelector(".card").style.animation="shake .4s ease";
+      setTimeout(function(){document.querySelector(".card").style.animation="";},400);
+    }
+  },600);
+}
+document.addEventListener("keydown",function(e){if(e.key==="Enter")login();});
+(function(){
+  var s=sessionStorage.getItem("axion_session");
+  if(s){try{var p=JSON.parse(s);if(p.expires>Date.now())window.location.href="index.html";}catch(e){}}
+})();
+</script>
+</body>
+</html>

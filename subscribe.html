@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Axion Signals — Subscribe</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#0d1117;--bg2:#131722;--bg3:#1a2030;--border:#252d40;--green:#00e676;--red:#ff3d5a;--gold:#ffbb00;--blue:#4488ff;--text:#c8d4e8;--text2:#7a8aaa;--text3:#3a4a6a;--mono:'DM Mono',monospace;--cond:'Outfit',sans-serif;--main:'DM Sans',sans-serif;}
+    body{background:var(--bg);color:var(--text);font-family:var(--main);min-height:100vh;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,187,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,187,0,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+    .topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;}
+    .logo{font-family:var(--cond);font-size:18px;font-weight:700;color:#fff;}
+    .logo span{color:var(--gold);}
+    .back-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block;}
+    .hero{text-align:center;padding:60px 20px 40px;}
+    .hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,187,0,0.08);border:1px solid rgba(255,187,0,0.2);border-radius:20px;padding:5px 14px;font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:20px;}
+    .hero h1{font-family:var(--cond);font-size:48px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:14px;}
+    .hero h1 span{color:var(--gold);}
+    .hero p{font-size:15px;color:var(--text2);max-width:500px;margin:0 auto;}
+    .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:40px auto;padding:0 20px 60px;}
+    .plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative;transition:all .3s;}
+    .plan-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,0.4);}
+    .plan-card.popular{border-color:rgba(255,187,0,0.4);box-shadow:0 0 30px rgba(255,187,0,0.1);}
+    .popular-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),#ff8800);color:#000;font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:1.5px;padding:4px 16px;border-radius:20px;}
+    .plan-name{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text2);margin-bottom:12px;}
+    .plan-price{font-family:var(--cond);font-size:42px;font-weight:900;color:#fff;line-height:1;}
+    .plan-price span{font-size:18px;color:var(--text2);font-weight:400;}
+    .plan-period{font-size:12px;color:var(--text2);margin-bottom:16px;font-family:var(--mono);}
+    .plan-savings{display:inline-block;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2);color:var(--green);font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:16px;}
+    .plan-features{list-style:none;margin-bottom:24px;}
+    .plan-features li{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+    .plan-features li:last-child{border-bottom:none;}
+    .plan-features li::before{content:'✓';color:var(--green);font-weight:700;}
+    .plan-btn{width:100%;padding:13px;border:none;border-radius:8px;font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+    .plan-btn.default{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
+    .plan-btn.default:hover{border-color:var(--gold);color:var(--gold);}
+    .plan-btn.gold{background:linear-gradient(135deg,var(--gold),#ff8800);color:#000;box-shadow:0 4px 16px rgba(255,187,0,0.3);}
+    .plan-btn.gold:hover{box-shadow:0 8px 24px rgba(255,187,0,0.5);}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal-title{font-family:var(--cond);font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;}
+    .modal-sub{font-size:12px;color:var(--text2);margin-bottom:24px;}
+    .payment-method{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+    .pm-title{font-family:var(--cond);font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;}
+    .pm-detail{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;}
+    .pm-detail:last-child{border-bottom:none;}
+    .pm-label{color:var(--text2);}
+    .pm-val{color:#fff;font-family:var(--mono);font-weight:700;}
+    .copy-btn{background:rgba(255,187,0,0.1);border:1px solid rgba(255,187,0,0.3);color:var(--gold);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:4px;cursor:pointer;}
+    .amount-box{background:rgba(255,187,0,0.06);border:1px solid rgba(255,187,0,0.2);border-radius:10px;padding:16px;text-align:center;margin-bottom:20px;}
+    .amount-label{font-size:11px;color:var(--text2);font-family:var(--mono);letter-spacing:1px;margin-bottom:6px;}
+    .amount-val{font-family:var(--cond);font-size:36px;font-weight:900;color:var(--gold);}
+    .amount-plan{font-size:11px;color:var(--text2);font-family:var(--mono);}
+    .notice{background:rgba(68,136,255,0.06);border:1px solid rgba(68,136,255,0.2);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:16px;}
+    .form-group{margin-bottom:14px;}
+    .form-label{display:block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text2);text-transform:uppercase;margin-bottom:6px;}
+    .form-input{width:100%;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:#fff;font-family:var(--mono);font-size:12px;outline:none;}
+    .form-input:focus{border-color:var(--gold);}
+    .submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--green),#00b85a);border:none;border-radius:8px;color:#000;font-family:var(--cond);font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;}
+    .close-btn{width:100%;padding:11px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--cond);font-size:13px;cursor:pointer;margin-top:8px;}
+    .features-section{max-width:900px;margin:0 auto;padding:0 20px 60px;}
+    .features-title{font-family:var(--cond);font-size:28px;font-weight:800;color:#fff;text-align:center;margin-bottom:30px;}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+    .feature-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;}
+    .feature-icon{font-size:28px;margin-bottom:10px;}
+    .feature-name{font-family:var(--cond);font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;}
+    .feature-desc{font-size:11px;color:var(--text2);line-height:1.6;}
+    @media(max-width:768px){.plans-grid{grid-template-columns:1fr;}.features-grid{grid-template-columns:1fr 1fr;}.hero h1{font-size:32px;}}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo"><span>Axion</span> Signals AI</div>
+  <a href="login.html" class="back-btn">← Back to Login</a>
+</header>
+<div class="hero">
+  <div class="hero-tag">◈ EXCLUSIVE ACCESS</div>
+  <h1>Join <span>Axion Signals</span><br/>AI Trading Intelligence</h1>
+  <p>Get real-time AI-powered forex scalping signals delivered to your dashboard and Telegram.</p>
+</div>
+<div class="plans-grid">
+  <div class="plan-card">
+    <div class="plan-name">Monthly</div>
+    <div class="plan-price"><span>₦</span>10,000</div>
+    <div class="plan-period">per month</div>
+    <ul class="plan-features">
+      <li>Live AI Scalp Signals</li>
+      <li>Telegram Alerts</li>
+      <li>TradingView Charts</li>
+      <li>Gold & Silver Signals</li>
+      <li>8 Forex Pairs</li>
+    </ul>
+    <button class="plan-btn default" onclick="openPayment('monthly',10000)">Get Started</button>
+  </div>
+  <div class="plan-card popular">
+    <div class="popular-badge">⚡ MOST POPULAR</div>
+    <div class="plan-name">Quarterly</div>
+    <div class="plan-price"><span>₦</span>25,000</div>
+    <div class="plan-period">per 3 months</div>
+    <div class="plan-savings">SAVE ₦5,000</div>
+    <ul class="plan-features">
+      <li>Everything in Monthly</li>
+      <li>Priority Signal Access</li>
+      <li>Market Analysis Reports</li>
+      <li>Weekend Recap Alerts</li>
+      <li>Early Signal Access</li>
+    </ul>
+    <button class="plan-btn gold" onclick="openPayment('quarterly',25000)">Get Started</button>
+  </div>
+  <div class="plan-card">
+    <div class="plan-name">Annual</div>
+    <div class="plan-price"><span>₦</span>55,000</div>
+    <div class="plan-period">per year</div>
+    <div class="plan-savings">SAVE ₦65,000</div>
+    <ul class="plan-features">
+      <li>Everything in Quarterly</li>
+      <li>VIP Telegram Group</li>
+      <li>1-on-1 Signal Review</li>
+      <li>Custom Alert Settings</li>
+      <li>Lifetime Updates</li>
+    </ul>
+    <button class="plan-btn default" onclick="openPayment('annual',55000)">Get Started</button>
+  </div>
+</div>
+<div class="features-section">
+  <div class="features-title">Why Axion Signals?</div>
+  <div class="features-grid">
+    <div class="feature-item"><div class="feature-icon">🤖</div><div class="feature-name">AI-Powered</div><div class="feature-desc">Groq Llama AI analyzes live market data every 5 minutes</div></div>
+    <div class="feature-item"><div class="feature-icon">📱</div><div class="feature-name">Telegram Alerts</div><div class="feature-desc">Instant signal alerts sent directly to your phone</div></div>
+    <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-name">Live Charts</div><div class="feature-desc">Professional TradingView charts with RSI, MACD, VWAP</div></div>
+    <div class="feature-item"><div class="feature-icon">⚡</div><div class="feature-name">M15 Scalping</div><div class="feature-desc">Fast 15-30 minute signals for quick profitable trades</div></div>
+    <div class="feature-item"><div class="feature-icon">🥇</div><div class="feature-name">Gold & Silver</div><div class="feature-desc">Real-time metals signals with spot prices</div></div>
+    <div class="feature-item"><div class="feature-icon">🔒</div><div class="feature-name">Members Only</div><div class="feature-desc">Exclusive access for verified paying members only</div></div>
+  </div>
+</div>
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <div class="modal-title">Complete Your Subscription</div>
+    <div class="modal-sub" id="modalSub">Monthly Plan</div>
+    <div class="amount-box">
+      <div class="amount-label">AMOUNT TO PAY</div>
+      <div class="amount-val" id="modalAmount">₦10,000</div>
+      <div class="amount-plan" id="modalPlan">Monthly Subscription</div>
+    </div>
+    <div class="payment-method">
+      <div class="pm-title">🏦 Bank Transfer (Opay)</div>
+      <div class="pm-detail"><span class="pm-label">Bank</span><span class="pm-val">Opay</span></div>
+      <div class="pm-detail"><span class="pm-label">Account Number</span><span class="pm-val">8059299479 <button class="copy-btn" onclick="navigator.clipboard.writeText('8059299479');this.textContent='Copied!'">Copy</button></span></div>
+      <div class="pm-detail"><span class="pm-label">Account Name</span><span class="pm-val">Aquila Eze</span></div>
+    </div>
+    <div class="payment-method">
+      <div class="pm-title">💎 Crypto Wallet (USDT)</div>
+      <div class="pm-detail"><span class="pm-label">Network</span><span class="pm-val">TRC20 (Tron)</span></div>
+      <div class="pm-detail"><span class="pm-label">Address</span><span class="pm-val" style="font-size:10px">Coming Soon</span></div>
+    </div>
+    <div class="notice">ℹ️ After payment, fill the form below. Your account will be activated within <strong>30 minutes</strong> after confirmation.</div>
+    <div class="form-group"><label class="form-label">Your Full Name</label><input class="form-input" id="subName" placeholder="e.g. John Doe"/></div>
+    <div class="form-group"><label class="form-label">Preferred Username</label><input class="form-input" id="subUser" placeholder="e.g. johndoe"/></div>
+    <div class="form-group"><label class="form-label">Telegram Username</label><input class="form-input" id="subTelegram" placeholder="e.g. @johndoe"/></div>
+    <div class="form-group"><label class="form-label">Payment Reference</label><input class="form-input" id="subRef" placeholder="e.g. Transfer ref: 1234567890"/></div>
+    <button class="submit-btn" onclick="submitSubscription()">✓ I Have Paid — Submit for Approval</button>
+    <button class="close-btn" onclick="document.getElementById('paymentModal').classList.remove('show')">Cancel</button>
+  </div>
+</div>
+<script>
+let currentPlan='monthly',currentAmount=10000;
+function openPayment(plan,amount){
+  currentPlan=plan;currentAmount=amount;
+  const names={monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
+  document.getElementById('modalSub').textContent=names[plan]+' Plan · ₦'+amount.toLocaleString();
+  document.getElementById('modalAmount').textContent='₦'+amount.toLocaleString();
+  document.getElementById('modalPlan').textContent=names[plan]+' Subscription';
+  document.getElementById('paymentModal').classList.add('show');
+}
+function submitSubscription(){
+  const name=document.getElementById('subName').value.trim();
+  const user=document.getElementById('subUser').value.trim();
+  const ref=document.getElementById('subRef').value.trim();
+  if(!name||!user||!ref){alert('Please fill all fields');return;}
+  const pending=JSON.parse(localStorage.getItem('axion_pending_subs')||'[]');
+  pending.push({name,username:user.toLowerCase(),plan:currentPlan,amount:currentAmount,ref,date:new Date().toISOString(),status:'pending'});
+  localStorage.setItem('axion_pending_subs',JSON.stringify(pending));
+  document.getElementById('paymentModal').classList.remove('show');
+  alert('Subscription submitted!\n\nYour account will be activated within 30 minutes.\nUsername: '+user.toLowerCase());
+}
+</script>
+</body>
+</html>
