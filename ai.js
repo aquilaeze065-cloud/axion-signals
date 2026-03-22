@@ -101,7 +101,7 @@ Generate EXACTLY 4 scalp signals. Respond with valid JSON only, no other text:
       "entry": 1.15610,
       "tp": 1.15720,
       "sl": 1.15550,
-      "confidence": 88,
+      "quality_score": 88,
       "rr": "1:1.8",
       "reason": "EMA9 crossed above EMA21, RSI 58 rising, MACD bullish crossover, price above VWAP",
       "indicators": ["EMA Cross","RSI 58","MACD+","VWAP"],
@@ -117,7 +117,14 @@ Rules:
 - Use EXACT live prices above as basis for entry
 - TP forex: 8-14 pips. Gold: $6-10. Silver: $0.15-0.25
 - SL forex: 5-8 pips. Gold: $4-6. Silver: $0.10-0.15
-- Confidence 75-95% only
+- quality_score: 60-95 based on confluence:
+  * Trend alignment (+20pts)
+  * RSI confirmation (+15pts) 
+  * MACD signal (+15pts)
+  * BB position (+15pts)
+  * VWAP above/below (+15pts)
+  * Volume confirmation (+20pts)
+  * Score = sum of confirmed factors
 - Include at least 1 Gold or Silver signal
 - Verdict: POOR / MODERATE / STRONG / EXCELLENT
 - JSON only, no markdown`;
