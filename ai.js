@@ -183,7 +183,7 @@ function renderAISignals(parsed){
   }).join('');
 }
 function generateAIAnalysis(){generateAISignals(true);}
-function initAI(){updateSessionBadge();updateNewsCountdown();setInterval(()=>{updateSessionBadge();updateNewsCountdown();},60000);setTimeout(()=>generateAISignals(true),3000);setInterval(()=>generateAISignals(false),5*60*1000);}
+function initAI(){updateSessionBadge();updateNewsCountdown();setInterval(()=>{updateSessionBadge();updateNewsCountdown();},60000);setTimeout(()=>generateAISignals(true),3000);setInterval(()=>generateAISignals(false),15*60*1000);}
 document.addEventListener('DOMContentLoaded',initAI);
 // ── POSITION SIZE CALCULATOR ──────────────────────────────
 function calcPosition(){
