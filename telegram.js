@@ -1,5 +1,6 @@
 const TELEGRAM_TOKEN = '8732236406:AAGFX9Y-cWCvNZIap0Y4ZVtdE5oyLp7sP5Y';
 const TELEGRAM_CHAT  = '5695936404';
+const TELEGRAM_CHANNEL = '-1003865341821';
 
 async function sendTelegram(signal) {
   const isMetal = signal.sym === 'XAUUSD' || signal.sym === 'XAGUSD';
@@ -18,6 +19,7 @@ async function sendTelegram(signal) {
     `💬 _${signal.reason||'AI confirmed signal'}_\n\n`+
     `⚠ Not financial advice`;
 
+  // Send to personal chat
   const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
   const body = JSON.stringify({
     chat_id: TELEGRAM_CHAT,
@@ -35,7 +37,17 @@ async function sendTelegram(signal) {
       res.on('data', c => d += c);
       res.on('end', () => {
         const r = JSON.parse(d);
-        if (r.ok) console.log('[Telegram] ✓ Sent:', signal.pair, signal.dir.toUpperCase());
+        if (r.ok) {
+          console.log('[Telegram] ✓ Sent:', signal.pair, signal.dir.toUpperCase());
+          // Also send to VIP channel
+          const https2 = require('https');
+          const body2 = JSON.stringify({chat_id: TELEGRAM_CHANNEL, text: msg, parse_mode: 'Markdown'});
+          const req2 = https2.request(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body2)}},(res2)=>{res2.resume();});
+          req2.on('error',()=>{});
+          req2.write(body2);
+          req2.end();
+          console.log('[Telegram] ✓ Sent to VIP channel');
+        }
         else console.error('[Telegram] ✗ Failed:', r.description);
         resolve(r);
       });
