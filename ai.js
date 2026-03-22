@@ -185,3 +185,156 @@ function renderAISignals(parsed){
 function generateAIAnalysis(){generateAISignals(true);}
 function initAI(){updateSessionBadge();updateNewsCountdown();setInterval(()=>{updateSessionBadge();updateNewsCountdown();},60000);setTimeout(()=>generateAISignals(true),3000);setInterval(()=>generateAISignals(false),5*60*1000);}
 document.addEventListener('DOMContentLoaded',initAI);
+// ── POSITION SIZE CALCULATOR ──────────────────────────────
+function calcPosition(){
+  const balance = parseFloat(document.getElementById('calcBalance')?.value)||1000;
+  const riskPct = parseFloat(document.getElementById('calcRisk')?.value)||1;
+  const slPips  = parseFloat(document.getElementById('calcSL')?.value)||15;
+  const pair    = document.getElementById('calcPair')?.value||'forex';
+
+  const riskAmt = balance * (riskPct/100);
+
+  let pipValue, lotSize, units;
+
+  if(pair==='forex'){
+    // Standard lot = 100,000 units, pip = $10/lot
+    pipValue = riskAmt / slPips;
+    lotSize  = pipValue / 10;
+    units    = lotSize * 100000;
+  } else if(pair==='jpy'){
+    // JPY pairs pip = $9.09/lot approx
+    pipValue = riskAmt / slPips;
+    lotSize  = pipValue / 9.09;
+    units    = lotSize * 100000;
+  } else if(pair==='gold'){
+    // Gold: 1 lot = 100 oz, $1 move = $100/lot
+    pipValue = riskAmt / slPips;
+    lotSize  = pipValue / 100;
+    units    = lotSize * 100;
+  } else if(pair==='silver'){
+    // Silver: 1 lot = 5000 oz
+    pipValue = riskAmt / slPips;
+    lotSize  = pipValue / 50;
+    units    = lotSize * 5000;
+  }
+
+  // Update display
+  const riskEl=document.getElementById('calcRiskAmt');
+  const lotEl=document.getElementById('calcLotSize');
+  const unitEl=document.getElementById('calcUnits');
+  const pipEl=document.getElementById('calcPipVal');
+  const warnEl=document.getElementById('calcWarning');
+
+  if(riskEl)riskEl.textContent='$'+riskAmt.toFixed(2);
+  if(lotEl)lotEl.textContent=Math.max(0.01,lotSize).toFixed(2);
+  if(unitEl)unitEl.textContent=Math.round(units).toLocaleString();
+  if(pipEl)pipEl.textContent='$'+pipValue.toFixed(2);
+
+  // Warning
+  if(warnEl){
+    if(riskPct>3){
+      warnEl.textContent='⚠ High risk! Never risk more than 2% per trade';
+      warnEl.className='calc-warning show danger';
+    } else if(riskPct<=1){
+      warnEl.textContent='✓ Good risk management — safe position size';
+      warnEl.className='calc-warning show safe';
+    } else {
+      warnEl.textContent='⚡ Moderate risk — stay disciplined';
+      warnEl.className='calc-warning show';
+      warnEl.style.background='rgba(255,187,0,0.08)';
+      warnEl.style.border='1px solid rgba(255,187,0,0.2)';
+      warnEl.style.color='var(--gold)';
+    }
+  }
+}
+
+// ── SESSION OPEN NOTIFICATIONS ────────────────────────────
+let londonNotified=false, nyNotified=false, notifDate='';
+
+function checkSessionAlerts(){
+  const now=new Date();
+  const today=now.toDateString();
+  const h=now.getUTCHours();
+  const m=now.getUTCMinutes();
+  const day=now.getUTCDay();
+
+  // Reset daily notifications
+  if(notifDate!==today){notifDate=today;londonNotified=false;nyNotified=false;}
+
+  // Skip weekends
+  if(day===0||day===6)return;
+
+  // London Open: 7:00-7:30 UTC
+  if(h===7&&m<30&&!londonNotified){
+    londonNotified=true;
+    showSessionBanner('london','🇬🇧 LONDON SESSION OPEN — Best time to trade! High liquidity & volatility now active');
+    playSessionAlert();
+    sendSessionTelegram('🇬🇧 LONDON SESSION NOW OPEN
+
+Best scalping conditions active!
+High liquidity · Tight spreads · Strong moves
+
+⚡ Check Axion Signals for live entries');
+  }
+
+  // New York Open: 13:00-13:30 UTC
+  if(h===13&&m<30&&!nyNotified){
+    nyNotified=true;
+    showSessionBanner('newyork','🇺🇸 NEW YORK SESSION OPEN — High impact moves expected! London/NY overlap active');
+    playSessionAlert();
+    sendSessionTelegram('🇺🇸 NEW YORK SESSION NOW OPEN
+
+London/NY overlap — strongest signals!
+High volatility · Maximum liquidity
+
+⚡ Check Axion Signals for live entries');
+  }
+}
+
+function showSessionBanner(type, text){
+  const banner=document.getElementById('sessionBanner');
+  const textEl=document.getElementById('sessionBannerText');
+  if(!banner||!textEl)return;
+  textEl.textContent=text;
+  banner.className='session-banner '+type+' show';
+  // Auto hide after 30 seconds
+  setTimeout(()=>banner.classList.remove('show'),30000);
+}
+
+function playSessionAlert(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [523,659,784,1047].forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.value=freq;osc.type='sine';
+      gain.gain.setValueAtTime(0.3,ctx.currentTime+i*0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.2);
+      osc.start(ctx.currentTime+i*0.15);
+      osc.stop(ctx.currentTime+i*0.15+0.2);
+    });
+  }catch(e){}
+}
+
+function sendSessionTelegram(msg){
+  fetch('/api/telegram',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      pair:'SESSION ALERT',sym:'SESSION',dir:'buy',
+      tf:'--',entry:'--',tp:'--',sl:'--',
+      confidence:100,rr:'--',
+      reason:msg,duration:'--',
+      _customMsg:msg
+    })
+  }).catch(()=>{});
+}
+
+// Check every minute
+setInterval(checkSessionAlerts, 60000);
+// Check immediately on load
+setTimeout(checkSessionAlerts, 2000);
+
+// Init calculator on load
+document.addEventListener('DOMContentLoaded', calcPosition);

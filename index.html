@@ -67,12 +67,47 @@
   .hdr-btn{padding:3px 5px!important;font-size:8px!important;}
 }
 </style>
+
+<style>
+/* POSITION SIZE CALCULATOR */
+.calc-section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin:12px;}
+.calc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.calc-title{font-family:var(--cond);font-size:14px;font-weight:700;color:#fff;}
+.calc-badge{background:rgba(255,187,0,0.1);border:1px solid rgba(255,187,0,0.2);color:var(--gold);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:4px;}
+.calc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+.calc-group{display:flex;flex-direction:column;gap:4px;}
+.calc-label{font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;}
+.calc-input{padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:#fff;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;width:100%;}
+.calc-input:focus{border-color:var(--gold);}
+.calc-results{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px;}
+.calc-result-box{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px;text-align:center;}
+.calc-result-label{font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:1px;margin-bottom:4px;}
+.calc-result-val{font-family:var(--cond);font-size:18px;font-weight:800;color:#fff;}
+.calc-warning{font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:5px;text-align:center;display:none;}
+.calc-warning.show{display:block;}
+.calc-warning.danger{background:rgba(255,61,90,0.1);border:1px solid rgba(255,61,90,0.2);color:var(--red);}
+.calc-warning.safe{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2);color:var(--green);}
+
+/* SESSION ALERT BANNER */
+.session-banner{display:none;position:fixed;top:56px;left:0;right:0;z-index:300;padding:10px 20px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-align:center;animation:slideDown .4s ease;}
+.session-banner.london{background:linear-gradient(135deg,rgba(0,230,118,0.95),rgba(0,180,90,0.95));color:#000;}
+.session-banner.newyork{background:linear-gradient(135deg,rgba(255,187,0,0.95),rgba(255,100,0,0.95));color:#000;}
+.session-banner.show{display:block;}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.session-close{float:right;cursor:pointer;font-size:14px;margin-left:10px;}
+</style>
 </head>
 <body>
 <script>
 (function(){const s=sessionStorage.getItem('axion_session');if(!s){window.location.href='login.html';return;}try{const p=JSON.parse(s);if(p.expires<Date.now()){sessionStorage.removeItem('axion_session');window.location.href='login.html';}}catch(e){window.location.href='login.html';}})();
 function doLogout(){sessionStorage.removeItem('axion_session');window.location.href='login.html';}
 </script>
+
+<!-- SESSION NOTIFICATION BANNER -->
+<div class="session-banner" id="sessionBanner">
+  <span id="sessionBannerText"></span>
+  <span class="session-close" onclick="document.getElementById('sessionBanner').classList.remove('show')">✕</span>
+</div>
 <header class="topbar">
   <div class="topbar-left">
     <div class="ax-logo">
@@ -199,6 +234,56 @@ function doLogout(){sessionStorage.removeItem('axion_session');window.location.h
   </aside>
 </div>
 <script src="performance.js"></script>
+
+    <!-- POSITION SIZE CALCULATOR -->
+    <div class="calc-section">
+      <div class="calc-header">
+        <div class="calc-title">📐 Position Size Calculator</div>
+        <span class="calc-badge">RISK MANAGER</span>
+      </div>
+      <div class="calc-grid">
+        <div class="calc-group">
+          <label class="calc-label">Account Balance ($)</label>
+          <input class="calc-input" id="calcBalance" type="number" value="1000" oninput="calcPosition()"/>
+        </div>
+        <div class="calc-group">
+          <label class="calc-label">Risk Per Trade (%)</label>
+          <input class="calc-input" id="calcRisk" type="number" value="1" step="0.1" oninput="calcPosition()"/>
+        </div>
+        <div class="calc-group">
+          <label class="calc-label">Stop Loss (pips/$)</label>
+          <input class="calc-input" id="calcSL" type="number" value="15" oninput="calcPosition()"/>
+        </div>
+        <div class="calc-group">
+          <label class="calc-label">Pair</label>
+          <select class="calc-input" id="calcPair" onchange="calcPosition()">
+            <option value="forex">Forex (EUR/USD, GBP/USD etc)</option>
+            <option value="jpy">JPY Pairs (USD/JPY etc)</option>
+            <option value="gold">Gold (XAU/USD)</option>
+            <option value="silver">Silver (XAG/USD)</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-results">
+        <div class="calc-result-box">
+          <div class="calc-result-label">Risk Amount</div>
+          <div class="calc-result-val green" id="calcRiskAmt">$10.00</div>
+        </div>
+        <div class="calc-result-box">
+          <div class="calc-result-label">Lot Size</div>
+          <div class="calc-result-val gold-text" id="calcLotSize">0.07</div>
+        </div>
+        <div class="calc-result-box">
+          <div class="calc-result-label">Units</div>
+          <div class="calc-result-val" id="calcUnits">7,000</div>
+        </div>
+        <div class="calc-result-box">
+          <div class="calc-result-label">Pip Value</div>
+          <div class="calc-result-val" id="calcPipVal">$0.70</div>
+        </div>
+      </div>
+      <div class="calc-warning" id="calcWarning"></div>
+    </div>
 <script src="alerts.js"></script>
 <script src="signals.js"></script>
 <script src="ai.js"></script>
