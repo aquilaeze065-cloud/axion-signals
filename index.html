@@ -251,5 +251,98 @@ window.addEventListener('load',function(){
   setTimeout(initChart,500);
 });
 </script>
+
+<!-- NEWS FEED SECTION -->
+<div class="news-section">
+  <div class="news-section-header">
+    <div class="news-section-title">📰 Market News Feed</div>
+    <div class="news-tabs">
+      <button class="news-tab active" onclick="switchNewsTab('all',this)">All</button>
+      <button class="news-tab" onclick="switchNewsTab('forex',this)">Forex</button>
+      <button class="news-tab" onclick="switchNewsTab('gold',this)">Gold</button>
+      <button class="news-tab" onclick="switchNewsTab('crypto',this)">Crypto</button>
+      <button class="news-tab" onclick="refreshNews()">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="news-grid" id="newsFeed">
+    <div class="news-loading"><span class="spinner"></span> Loading news...</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M4 28L14 4h4L28 28h-4.5l-2.5-6H11l-2.5 6H4z" fill="url(#footGrad)"/><path d="M12.5 18l3.5-8 3.5 8h-7z" fill="#0d1117"/><defs><linearGradient id="footGrad" x1="4" y1="4" x2="28" y2="28"><stop stop-color="#FFB800"/><stop offset="1" stop-color="#FF6B00"/></linearGradient></defs></svg>
+        <span><strong>Axion</strong> Signals AI</span>
+      </div>
+      <p class="footer-desc">Professional AI-powered forex scalping signals for serious traders.</p>
+    </div>
+    <div class="footer-links">
+      <div class="footer-col">
+        <div class="footer-col-title">Platform</div>
+        <a href="login.html">Member Login</a>
+        <a href="subscribe.html">Subscribe</a>
+        <a href="admin.html">Admin Panel</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Contact</div>
+        <a href="https://t.me/Axions2030">Telegram</a>
+        <a href="https://t.me/+1p6_13KsTF81YzM0">VIP Channel</a>
+        <a href="mailto:aquilaeze065@gmail.com">Email</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Axion Signals AI · All rights reserved</span>
+    <span class="footer-disclaimer">Not financial advice · Trade at your own risk</span>
+    <span class="powered-by">Powered by <strong>Groq AI</strong> + <strong>TradingView</strong></span>
+  </div>
+</footer>
+
+<style>
+/* NEWS SECTION */
+.news-section{background:var(--bg2);border-top:1px solid var(--border);padding:24px;}
+.news-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.news-section-title{font-family:var(--cond);font-size:16px;font-weight:700;color:#fff;}
+.news-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.news-tab{padding:4px 12px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:4px;transition:all .2s;}
+.news-tab:hover,.news-tab.active{border-color:var(--gold);color:var(--gold);}
+.news-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.news-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all .2s;}
+.news-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.news-card-source{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase;}
+.news-card-title{font-size:12px;color:var(--text);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.news-card-time{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:8px;}
+.news-loading{grid-column:1/-1;text-align:center;padding:20px;color:var(--text2);font-family:var(--mono);font-size:11px;}
+
+/* FOOTER */
+.site-footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 24px 16px;}
+.footer-inner{display:flex;justify-content:space-between;gap:32px;margin-bottom:24px;flex-wrap:wrap;}
+.footer-left{max-width:280px;}
+.footer-logo{display:flex;align-items:center;gap:8px;font-family:var(--cond);font-size:16px;color:#fff;margin-bottom:10px;}
+.footer-logo strong{color:var(--gold);}
+.footer-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+.footer-links{display:flex;gap:40px;flex-wrap:wrap;}
+.footer-col{display:flex;flex-direction:column;gap:8px;}
+.footer-col-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:4px;}
+.footer-col a{font-size:12px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-col a:hover{color:var(--gold);}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px;font-size:10px;font-family:var(--mono);color:var(--text3);}
+.footer-disclaimer{color:var(--red);opacity:.7;}
+.powered-by{color:var(--text2);}
+.powered-by strong{color:var(--gold);}
+
+/* Mobile news */
+@media(max-width:768px){
+  .news-grid{grid-template-columns:repeat(2,1fr)!important;}
+  .footer-inner{flex-direction:column;}
+  .footer-bottom{flex-direction:column;text-align:center;}
+}
+@media(max-width:480px){
+  .news-grid{grid-template-columns:1fr!important;}
+}
+</style>
 </body>
 </html>
