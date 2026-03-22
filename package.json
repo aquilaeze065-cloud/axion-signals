@@ -1,0 +1,12 @@
+{
+  "name": "axion-signals",
+  "version": "1.0.0",
+  "description": "Axion Signals AI - Live Forex Trading Signals",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
