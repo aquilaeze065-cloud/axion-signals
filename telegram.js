@@ -3,17 +3,23 @@ const TELEGRAM_CHAT  = '5695936404';
 const TELEGRAM_CHANNEL = '-1003865341821';
 
 async function sendTelegram(signal) {
-  // Handle session alert messages
+  // Handle custom messages (session alerts, no signal notifications)
   if(signal._customMsg){
-    const url2=`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-    const body2=JSON.stringify({chat_id:TELEGRAM_CHAT,text:signal._customMsg,parse_mode:'Markdown'});
-    const body3=JSON.stringify({chat_id:TELEGRAM_CHANNEL,text:signal._customMsg,parse_mode:'Markdown'});
     const https=require('https');
-    [body2,body3].forEach(b=>{
-      const r=https.request(url2,{method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(b)}},(res)=>{res.resume();});
-      r.on('error',()=>{});r.write(b);r.end();
+    const msg=signal._customMsg;
+    [TELEGRAM_CHAT, TELEGRAM_CHANNEL].forEach(chatId=>{
+      const body=JSON.stringify({chat_id:chatId,text:msg});
+      const req=https.request({
+        hostname:'api.telegram.org',
+        path:'/bot'+TELEGRAM_TOKEN+'/sendMessage',
+        method:'POST',
+        headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}
+      },(res)=>{res.resume();});
+      req.on('error',()=>{});
+      req.write(body);
+      req.end();
     });
-    console.log('[Telegram] Session alert sent');
+    console.log('[Telegram] Custom message sent to personal + VIP channel');
     return {ok:true};
   }
   const isMetal = signal.sym === 'XAUUSD' || signal.sym === 'XAGUSD';
