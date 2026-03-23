@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Axion Signals — Precision Scalping System</title>
+  <meta name="description" content="Professional AI-powered forex scalping signals. Real-time alerts for EUR/USD, Gold, BTC and more."/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@200;300;400;500;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#080c14;--bg2:#0d1420;--bg3:#121c2e;--bg4:#172238;--border:#1e2d45;--border2:#253650;--gold:#f5a623;--gold2:#e8901a;--gold3:#ffd080;--green:#00e676;--red:#ff3d5a;--blue:#4488ff;--text:#d4e4f7;--text2:#7a9ac0;--text3:#3a5070;--mono:'DM Mono',monospace;--cond:'Outfit',sans-serif;--main:'DM Sans',sans-serif;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--main);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(245,166,35,0.08) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 80% 80%,rgba(68,136,255,0.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+    nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;background:rgba(8,12,20,0.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(245,166,35,0.1);display:flex;align-items:center;justify-content:space-between;padding:0 40px;}
+    .nav-logo{display:flex;align-items:center;gap:12px;}
+    .nav-logo-text{font-family:var(--cond);font-size:20px;font-weight:800;color:#fff;}
+    .nav-logo-text span{color:var(--gold);}
+    .nav-logo-tag{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:3px;margin-top:2px;}
+    .nav-links{display:flex;align-items:center;gap:6px;}
+    .nav-link{color:var(--text2);font-size:13px;text-decoration:none;padding:6px 14px;border-radius:6px;transition:all .2s;}
+    .nav-link:hover{color:#fff;background:rgba(255,255,255,0.06);}
+    .nav-cta{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000!important;font-weight:700;font-family:var(--cond);font-size:13px;letter-spacing:.5px;padding:8px 20px;border-radius:7px;text-decoration:none;transition:all .2s;}
+    .nav-cta:hover{box-shadow:0 4px 20px rgba(245,166,35,0.4);transform:translateY(-1px);}
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 20px 60px;position:relative;z-index:1;}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:30px;padding:6px 16px;font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:28px;animation:fadeUp .6s ease both;}
+    .hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .hero h1{font-family:var(--cond);font-size:clamp(42px,7vw,88px);font-weight:900;color:#fff;line-height:1.0;letter-spacing:-1px;margin-bottom:10px;animation:fadeUp .6s .1s ease both;}
+    .hero h1 .gold{color:var(--gold);}
+    .hero-sub{font-size:clamp(15px,2vw,19px);color:var(--text2);max-width:580px;margin:20px auto 40px;line-height:1.7;animation:fadeUp .6s .2s ease both;}
+    .hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeUp .6s .3s ease both;}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:15px 32px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;font-family:var(--cond);font-size:16px;font-weight:800;letter-spacing:.5px;border-radius:8px;text-decoration:none;transition:all .25s;box-shadow:0 4px 24px rgba(245,166,35,0.3);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(245,166,35,0.5);}
+    .btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:15px 28px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:var(--cond);font-size:15px;font-weight:600;border-radius:8px;text-decoration:none;transition:all .2s;}
+    .btn-secondary:hover{background:rgba(255,255,255,0.1);}
+    .hero-ticker{margin-top:50px;width:100%;max-width:900px;background:rgba(13,20,32,0.8);border:1px solid var(--border);border-radius:12px;overflow:hidden;animation:fadeUp .6s .4s ease both;}
+    .stats-bar{position:relative;z-index:1;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:24px 40px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+    .stats-bar-item{text-align:center;padding:0 20px;border-right:1px solid var(--border);}
+    .stats-bar-item:last-child{border-right:none;}
+    .stats-bar-val{font-family:var(--cond);font-size:36px;font-weight:900;color:#fff;line-height:1;}
+    .stats-bar-val.gold{color:var(--gold);}
+    .stats-bar-val.green{color:var(--green);}
+    .stats-bar-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:6px;}
+    .stats-bar-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+    section{position:relative;z-index:1;padding:80px 40px;}
+    .section-label{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+    .section-label::before{content:'';width:24px;height:1px;background:var(--gold);}
+    .section-title{font-family:var(--cond);font-size:clamp(28px,4vw,48px);font-weight:900;color:#fff;margin-bottom:16px;line-height:1.1;}
+    .section-title span{color:var(--gold);}
+    .section-sub{font-size:15px;color:var(--text2);max-width:560px;line-height:1.7;margin-bottom:48px;}
+    .signals-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+    .signals-inner{max-width:1200px;margin:0 auto;}
+    .signals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px;}
+    .signal-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:all .25s;}
+    .signal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .signal-card.buy::before{background:linear-gradient(90deg,transparent,var(--green),transparent);}
+    .signal-card.sell::before{background:linear-gradient(90deg,transparent,var(--red),transparent);}
+    .signal-card.neutral::before{background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+    .signal-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.4);}
+    .sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .sc-pair{font-family:var(--cond);font-size:18px;font-weight:800;color:#fff;}
+    .sc-badge{padding:3px 10px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:800;}
+    .sc-badge.buy{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+    .sc-badge.sell{background:rgba(255,61,90,0.15);color:var(--red);border:1px solid rgba(255,61,90,0.3);}
+    .sc-badge.pending{background:rgba(245,166,35,0.15);color:var(--gold);border:1px solid rgba(245,166,35,0.3);}
+    .sc-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+    .sc-level{background:rgba(255,255,255,0.04);border-radius:6px;padding:8px;text-align:center;}
+    .sc-level-label{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1px;margin-bottom:3px;}
+    .sc-level-val{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;}
+    .sc-level.tp .sc-level-val{color:var(--green);}
+    .sc-level.sl .sc-level-val{color:var(--red);}
+    .sc-footer{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:10px;}
+    .sc-rr{color:var(--gold);}
+    .sc-result{padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;}
+    .sc-result.win{background:rgba(0,230,118,0.1);color:var(--green);}
+    .sc-result.loss{background:rgba(255,61,90,0.1);color:var(--red);}
+    .sc-result.pending{background:rgba(245,166,35,0.1);color:var(--gold);}
+    .results-inner{max-width:1000px;margin:0 auto;}
+    .results-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:32px;}
+    .rs-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+    .rs-val{font-family:var(--cond);font-size:28px;font-weight:900;margin-bottom:4px;}
+    .rs-val.green{color:var(--green);}
+    .rs-val.gold{color:var(--gold);}
+    .rs-val.blue{color:var(--blue);}
+    .rs-val.white{color:#fff;}
+    .rs-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;}
+    .results-table{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+    table{width:100%;border-collapse:collapse;}
+    th{padding:10px 16px;text-align:left;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text3);background:var(--bg3);border-bottom:1px solid var(--border);}
+    td{padding:12px 16px;font-size:12px;border-bottom:1px solid rgba(30,45,69,0.6);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,0.02);}
+    .td-pair{font-family:var(--cond);font-size:14px;font-weight:700;color:#fff;}
+    .td-dir{display:inline-flex;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:9px;font-weight:800;}
+    .td-dir.buy{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+    .td-dir.sell{background:rgba(255,61,90,0.15);color:var(--red);border:1px solid rgba(255,61,90,0.3);}
+    .td-mono{font-family:var(--mono);font-size:11px;color:var(--text2);}
+    .td-result{display:inline-flex;padding:2px 10px;border-radius:20px;font-family:var(--mono);font-size:9px;font-weight:700;}
+    .td-result.win{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
+    .td-result.loss{background:rgba(255,61,90,0.1);color:var(--red);border:1px solid rgba(255,61,90,0.2);}
+    .td-result.pending{background:rgba(245,166,35,0.1);color:var(--gold);border:1px solid rgba(245,166,35,0.2);}
+    .td-pips{font-family:var(--mono);font-size:12px;font-weight:700;}
+    .td-pips.pos{color:var(--green);}
+    .td-pips.neg{color:var(--red);}
+    .hiw-inner{max-width:900px;margin:0 auto;}
+    .hiw-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+    .hiw-step{text-align:center;padding:0 10px;}
+    .hiw-num{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(245,166,35,0.15),rgba(232,144,26,0.08));border:1px solid rgba(245,166,35,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--cond);font-size:22px;font-weight:900;color:var(--gold);margin:0 auto 16px;}
+    .hiw-title{font-family:var(--cond);font-size:16px;font-weight:700;color:#fff;margin-bottom:8px;}
+    .hiw-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+    .assets-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+    .assets-inner{max-width:900px;margin:0 auto;}
+    .assets-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .asset-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:all .2s;}
+    .asset-card:hover{border-color:rgba(245,166,35,0.3);transform:translateY(-2px);}
+    .asset-icon{font-size:28px;margin-bottom:8px;}
+    .asset-name{font-family:var(--cond);font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;}
+    .asset-sym{font-family:var(--mono);font-size:10px;color:var(--text3);}
+    .asset-price{font-family:var(--mono);font-size:12px;color:var(--gold);margin-top:6px;font-weight:700;}
+    .pricing-inner{max-width:900px;margin:0 auto;}
+    .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+    .pricing-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;position:relative;transition:all .3s;}
+    .pricing-card:hover{transform:translateY(-4px);}
+    .pricing-card.popular{border-color:rgba(245,166,35,0.4);box-shadow:0 0 40px rgba(245,166,35,0.08);}
+    .popular-tag{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:1.5px;padding:4px 16px;border-radius:20px;}
+    .pc-name{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--text2);text-transform:uppercase;margin-bottom:16px;}
+    .pc-price{font-family:var(--cond);font-size:44px;font-weight:900;color:#fff;line-height:1;}
+    .pc-price span{font-size:20px;color:var(--text2);font-weight:400;}
+    .pc-period{font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:8px;}
+    .pc-save{display:inline-block;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2);color:var(--green);font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:20px;}
+    .pc-features{list-style:none;margin-bottom:28px;}
+    .pc-features li{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+    .pc-features li:last-child{border:none;}
+    .pc-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+    .pc-btn{display:block;width:100%;padding:13px;text-align:center;border-radius:8px;font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:.5px;text-decoration:none;transition:all .2s;cursor:pointer;border:none;}
+    .pc-btn.outline{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
+    .pc-btn.outline:hover{border-color:var(--gold);color:var(--gold);}
+    .pc-btn.filled{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;box-shadow:0 4px 20px rgba(245,166,35,0.3);}
+    .pc-btn.filled:hover{box-shadow:0 8px 30px rgba(245,166,35,0.5);}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+    .modal-title{font-family:var(--cond);font-size:22px;font-weight:800;color:#fff;margin-bottom:20px;}
+    .amount-box{background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.2);border-radius:10px;padding:16px;text-align:center;margin-bottom:20px;}
+    .amount-val{font-family:var(--cond);font-size:36px;font-weight:900;color:var(--gold);}
+    .amount-plan{font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:4px;}
+    .pay-method{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+    .pay-method-title{font-family:var(--cond);font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;}
+    .pay-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;}
+    .pay-row:last-child{border:none;}
+    .pay-label{color:var(--text2);}
+    .pay-val{color:#fff;font-family:var(--mono);font-weight:700;}
+    .copy-btn{background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);color:var(--gold);font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;cursor:pointer;}
+    .notice{background:rgba(68,136,255,0.06);border:1px solid rgba(68,136,255,0.15);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:16px;}
+    .form-group{margin-bottom:12px;}
+    .form-label{display:block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--text2);text-transform:uppercase;margin-bottom:5px;}
+    .form-input{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:#fff;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;}
+    .form-input:focus{border-color:var(--gold);}
+    .submit-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--green),#00b85a);border:none;border-radius:8px;color:#000;font-family:var(--cond);font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;}
+    .cancel-btn{width:100%;padding:11px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--cond);font-size:13px;cursor:pointer;margin-top:8px;}
+    .tg-section{background:linear-gradient(135deg,rgba(245,166,35,0.06),rgba(232,144,26,0.02));border-top:1px solid rgba(245,166,35,0.1);border-bottom:1px solid rgba(245,166,35,0.1);}
+    .tg-inner{max-width:700px;margin:0 auto;text-align:center;}
+    .tg-icon{font-size:48px;margin-bottom:16px;}
+    .tg-title{font-family:var(--cond);font-size:36px;font-weight:900;color:#fff;margin-bottom:12px;}
+    .tg-title span{color:var(--gold);}
+    .tg-sub{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:28px;}
+    .tg-btn{display:inline-flex;align-items:center;gap:10px;padding:15px 32px;background:#229ED9;border-radius:8px;color:#fff;font-family:var(--cond);font-size:16px;font-weight:700;text-decoration:none;transition:all .2s;}
+    .tg-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(34,158,217,0.5);}
+    footer{background:var(--bg2);border-top:1px solid var(--border);padding:40px;}
+    .footer-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;margin-bottom:24px;}
+    .footer-brand .ft{font-family:var(--cond);font-size:18px;font-weight:800;color:#fff;}
+    .footer-brand .ft span{color:var(--gold);}
+    .footer-brand p{font-size:12px;color:var(--text2);margin-top:8px;max-width:240px;line-height:1.6;}
+    .footer-col-title{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:12px;}
+    .footer-col a{display:block;font-size:12px;color:var(--text2);text-decoration:none;margin-bottom:8px;transition:color .2s;}
+    .footer-col a:hover{color:var(--gold);}
+    .footer-bottom{max-width:1000px;margin:0 auto;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:10px;color:var(--text3);}
+    .footer-powered strong{color:var(--gold);}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-track{background:var(--bg);}
+    ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+    @media(max-width:900px){nav{padding:0 20px;}section{padding:60px 20px;}.stats-bar{grid-template-columns:repeat(2,1fr);padding:20px;}.signals-grid{grid-template-columns:1fr 1fr;}.hiw-steps{grid-template-columns:repeat(2,1fr);}.assets-grid{grid-template-columns:repeat(2,1fr);}.pricing-grid{grid-template-columns:1fr;}.results-stats{grid-template-columns:repeat(3,1fr);}.footer-inner{flex-direction:column;}}
+    @media(max-width:600px){.hero h1{font-size:36px;}.stats-bar{grid-template-columns:repeat(2,1fr);}.signals-grid{grid-template-columns:1fr;}.results-stats{grid-template-columns:repeat(2,1fr);}.nav-links .nav-link{display:none;}th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5){display:none;}}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M4 28L14 4h4L28 28h-4.5l-2.5-6H11l-2.5 6H4z" fill="url(#nG)"/><path d="M12.5 18l3.5-8 3.5 8h-7z" fill="#080c14"/><defs><linearGradient id="nG" x1="4" y1="4" x2="28" y2="28"><stop stop-color="#F5A623"/><stop offset="1" stop-color="#E8901A"/></linearGradient></defs></svg>
+    <div><div class="nav-logo-text"><span>Axion</span> Signals</div><div class="nav-logo-tag">Precision Scalping System</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="#signals" class="nav-link">Signals</a>
+    <a href="#results" class="nav-link">Results</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="login.html" class="nav-link">Login</a>
+    <a href="#pricing" class="nav-cta">Subscribe Now</a>
+  </div>
+</nav>
+<div class="hero">
+  <div class="hero-eyebrow">Live · Precision Scalping System</div>
+  <h1>Trade Smarter<br/>With <span class="gold">Real Signals</span></h1>
+  <p class="hero-sub">AI-powered forex, metals and crypto scalping signals. Real M15 candle analysis, ATR-based stop losses, transparent track record. No guesswork.</p>
+  <div class="hero-actions">
+    <a href="#pricing" class="btn-primary">Start Trading</a>
+    <a href="#results" class="btn-secondary">View Track Record</a>
+  </div>
+  <div class="hero-ticker">
+    <div class="tradingview-widget-container" style="height:46px">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {"symbols":[{"proName":"FX:EURUSD","title":"EUR/USD"},{"proName":"FX:GBPUSD","title":"GBP/USD"},{"proName":"FX:USDJPY","title":"USD/JPY"},{"proName":"TVC:GOLD","title":"XAU/USD"},{"proName":"TVC:SILVER","title":"XAG/USD"},{"proName":"COINBASE:BTCUSD","title":"BTC/USD"},{"proName":"COINBASE:ETHUSD","title":"ETH/USD"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
+      </script>
+    </div>
+  </div>
+</div>
+<div class="stats-bar">
+  <div class="stats-bar-item"><div class="stats-bar-val white" id="pubTotal">--</div><div class="stats-bar-label">Total Signals</div><div class="stats-bar-sub">All time tracked</div></div>
+  <div class="stats-bar-item"><div class="stats-bar-val green" id="pubWinRate">--</div><div class="stats-bar-label">Win Rate</div><div class="stats-bar-sub">Last 30 trades</div></div>
+  <div class="stats-bar-item"><div class="stats-bar-val gold" id="pubRR">--</div><div class="stats-bar-label">Avg Risk/Reward</div><div class="stats-bar-sub">Per signal</div></div>
+  <div class="stats-bar-item"><div class="stats-bar-val white">12</div><div class="stats-bar-label">Assets Covered</div><div class="stats-bar-sub">Forex, Metals, Crypto</div></div>
+</div>
+<section class="signals-section" id="signals">
+  <div class="signals-inner">
+    <div class="section-label">Live Signals</div>
+    <div class="section-title">Recent <span>Signal Activity</span></div>
+    <div class="section-sub">Every signal includes entry, take profit, stop loss and risk/reward ratio based on real M15 candle analysis.</div>
+    <div class="signals-grid" id="pubSignalsGrid"></div>
+    <div style="text-align:center;margin-top:24px"><a href="login.html" class="btn-primary" style="display:inline-flex">Access Live Dashboard</a></div>
+  </div>
+</section>
+<section>
+  <div class="hiw-inner">
+    <div class="section-label">How It Works</div>
+    <div class="section-title">Data-Driven <span>Signal Process</span></div>
+    <div class="hiw-steps">
+      <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-title">Real Candle Data</div><div class="hiw-desc">We fetch real M15 OHLC candles from live market feeds every 15 minutes</div></div>
+      <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-title">Indicator Analysis</div><div class="hiw-desc">EMA, RSI, MACD, Bollinger Bands and ATR calculated from real price history</div></div>
+      <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-title">AI Confirmation</div><div class="hiw-desc">Only signals with 75+ quality score and full confluence are sent</div></div>
+      <div class="hiw-step"><div class="hiw-num">4</div><div class="hiw-title">Instant Alert</div><div class="hiw-desc">Signal sent to your Telegram and dashboard with exact entry, TP and SL</div></div>
+    </div>
+  </div>
+</section>
+<section class="assets-section">
+  <div class="assets-inner">
+    <div class="section-label">Coverage</div>
+    <div class="section-title">12 <span>Assets Covered</span></div>
+    <div class="assets-grid">
+      <div class="asset-card"><div class="asset-icon">💱</div><div class="asset-name">EUR/USD</div><div class="asset-sym">EURUSD · M15</div><div class="asset-price" id="priceEURUSD">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">💷</div><div class="asset-name">GBP/USD</div><div class="asset-sym">GBPUSD · M15</div><div class="asset-price" id="priceGBPUSD">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">🇯🇵</div><div class="asset-name">USD/JPY</div><div class="asset-sym">USDJPY · M15</div><div class="asset-price" id="priceUSDJPY">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">🇦🇺</div><div class="asset-name">AUD/USD</div><div class="asset-sym">AUDUSD · M15</div><div class="asset-price" id="priceAUDUSD">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">🥇</div><div class="asset-name">Gold</div><div class="asset-sym">XAUUSD · M15</div><div class="asset-price" id="priceXAUUSD">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">🥈</div><div class="asset-name">Silver</div><div class="asset-sym">XAGUSD · M15</div><div class="asset-price" id="priceXAGUSD">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">&#8383;</div><div class="asset-name">Bitcoin</div><div class="asset-sym">BTCUSD · M15</div><div class="asset-price" id="priceBTCUSD">Loading...</div></div>
+      <div class="asset-card"><div class="asset-icon">&#9680;</div><div class="asset-name">Ethereum</div><div class="asset-sym">ETHUSD · M15</div><div class="asset-price" id="priceETHUSD">Loading...</div></div>
+    </div>
+  </div>
+</section>
+<section id="results">
+  <div class="results-inner">
+    <div class="section-label">Track Record</div>
+    <div class="section-title">Fully <span>Transparent Results</span></div>
+    <div class="section-sub">Every signal logged publicly. No cherry-picking. No fake screenshots.</div>
+    <div class="results-stats">
+      <div class="rs-card"><div class="rs-val white" id="rTotal">--</div><div class="rs-label">Total Signals</div></div>
+      <div class="rs-card"><div class="rs-val green" id="rWinRate">--</div><div class="rs-label">Win Rate</div></div>
+      <div class="rs-card"><div class="rs-val green" id="rWins">--</div><div class="rs-label">Total Wins</div></div>
+      <div class="rs-card"><div class="rs-val gold" id="rRR">--</div><div class="rs-label">Avg R:R</div></div>
+      <div class="rs-card"><div class="rs-val blue" id="rStreak">--</div><div class="rs-label">Best Streak</div></div>
+    </div>
+    <div class="results-table">
+      <table>
+        <thead><tr><th>Pair</th><th>Dir</th><th>Entry</th><th>TP</th><th>SL</th><th>R:R</th><th>Result</th><th>Pips</th><th>Date</th></tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+    <p style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:12px;text-align:center">Past performance does not guarantee future results. Forex trading involves significant risk.</p>
+  </div>
+</section>
+<section id="pricing" style="background:var(--bg2);border-top:1px solid var(--border)">
+  <div class="pricing-inner">
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="section-label" style="justify-content:center">Pricing</div>
+      <div class="section-title" style="text-align:center">Simple <span>Transparent Pricing</span></div>
+      <p style="font-size:14px;color:var(--text2);max-width:500px;margin:0 auto">Pay via bank transfer or crypto. Activated within 30 minutes after confirmation.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pc-name">Monthly</div>
+        <div class="pc-price"><span>&#8358;</span>10,000</div>
+        <div class="pc-period">per month</div>
+        <ul class="pc-features" style="margin-top:20px">
+          <li>Live AI Scalp Signals</li><li>Telegram Alerts</li><li>TradingView Charts</li><li>12 Assets Coverage</li><li>Position Size Calculator</li>
+        </ul>
+        <button class="pc-btn outline" onclick="openPayModal('monthly',10000)">Get Started</button>
+      </div>
+      <div class="pricing-card popular">
+        <div class="popular-tag">&#9889; MOST POPULAR</div>
+        <div class="pc-name">Quarterly</div>
+        <div class="pc-price"><span>&#8358;</span>25,000</div>
+        <div class="pc-period">per 3 months</div>
+        <div class="pc-save">SAVE &#8358;5,000</div>
+        <ul class="pc-features">
+          <li>Everything in Monthly</li><li>Priority Signal Access</li><li>VIP Telegram Channel</li><li>Weekend Market Recap</li><li>Early Signal Access</li>
+        </ul>
+        <button class="pc-btn filled" onclick="openPayModal('quarterly',25000)">Get Started</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pc-name">Annual</div>
+        <div class="pc-price"><span>&#8358;</span>55,000</div>
+        <div class="pc-period">per year</div>
+        <div class="pc-save">SAVE &#8358;65,000</div>
+        <ul class="pc-features">
+          <li>Everything in Quarterly</li><li>1-on-1 Signal Review</li><li>Custom Alert Settings</li><li>Lifetime Updates</li><li>Direct Admin Access</li>
+        </ul>
+        <button class="pc-btn outline" onclick="openPayModal('annual',55000)">Get Started</button>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="tg-section">
+  <div class="tg-inner">
+    <div class="tg-icon">&#128241;</div>
+    <div class="tg-title">Join Our <span>VIP Channel</span></div>
+    <div class="tg-sub">Get instant signal alerts on your phone. London open notifications, NY session alerts, and every strong signal sent directly to Telegram.</div>
+    <a href="https://t.me/+1p6_13KsTF81YzM0" class="tg-btn" target="_blank">Join Axion Signals VIP</a>
+  </div>
+</section>
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand"><div class="ft"><span>Axion</span> Signals</div><p>Precision data-driven scalping signals for serious traders. Real indicators, transparent results.</p></div>
+    <div><div class="footer-col-title">Platform</div><div class="footer-col"><a href="login.html">Member Login</a><a href="#pricing">Subscribe</a><a href="#results">Results</a><a href="admin.html">Admin</a></div></div>
+    <div><div class="footer-col-title">Assets</div><div class="footer-col"><a href="#">Forex Pairs</a><a href="#">Gold &amp; Silver</a><a href="#">Bitcoin &amp; Ethereum</a></div></div>
+    <div><div class="footer-col-title">Contact</div><div class="footer-col"><a href="https://t.me/Axions2030" target="_blank">@Axions2030</a><a href="https://t.me/+1p6_13KsTF81YzM0" target="_blank">VIP Channel</a><a href="mailto:aquilaeze065@gmail.com">Email Us</a></div></div>
+  </div>
+  <div class="footer-bottom">
+    <span>&#169; 2026 Axion Signals &middot; Precision Scalping System</span>
+    <span style="color:var(--red);opacity:.7;font-size:9px">Not financial advice &middot; Trade at your own risk</span>
+    <span class="footer-powered">Powered by <strong>Groq AI</strong> + <strong>TradingView</strong> + <strong>Twelve Data</strong></span>
+  </div>
+</footer>
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <div class="modal-title">Complete Subscription</div>
+    <div class="amount-box"><div class="amount-val" id="payAmount">&#8358;10,000</div><div class="amount-plan" id="payPlan">Monthly Plan</div></div>
+    <div class="pay-method">
+      <div class="pay-method-title">&#127974; Bank Transfer &mdash; Opay</div>
+      <div class="pay-row"><span class="pay-label">Bank</span><span class="pay-val">Opay</span></div>
+      <div class="pay-row"><span class="pay-label">Account</span><span class="pay-val">8059299479 <button class="copy-btn" onclick="navigator.clipboard.writeText('8059299479');this.textContent='Copied!'">Copy</button></span></div>
+      <div class="pay-row"><span class="pay-label">Name</span><span class="pay-val">Aquila Eze</span></div>
+    </div>
+    <div class="pay-method"><div class="pay-method-title">&#128142; Crypto &mdash; USDT TRC20</div><div class="pay-row"><span class="pay-label">Address</span><span class="pay-val" style="font-size:10px">Coming Soon</span></div></div>
+    <div class="notice">After payment, fill the form below. Account activated within 30 minutes.</div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="subName" placeholder="e.g. John Doe"/></div>
+    <div class="form-group"><label class="form-label">Preferred Username</label><input class="form-input" id="subUser" placeholder="e.g. johndoe"/></div>
+    <div class="form-group"><label class="form-label">Telegram Username</label><input class="form-input" id="subTg" placeholder="e.g. @johndoe"/></div>
+    <div class="form-group"><label class="form-label">Payment Reference</label><input class="form-input" id="subRef" placeholder="Transfer ref or description"/></div>
+    <button class="submit-btn" onclick="submitSub()">I Have Paid &mdash; Submit</button>
+    <button class="cancel-btn" onclick="document.getElementById('payModal').classList.remove('show')">Cancel</button>
+  </div>
+</div>
+<script>
+let currentPlan='monthly',currentAmount=10000;
+async function loadPrices(){
+  try{
+    const res=await fetch('/api/prices');const p=await res.json();
+    const fmt=(v,d)=>v?parseFloat(v).toFixed(d):'--';
+    document.getElementById('priceEURUSD').textContent='$'+fmt(p.EURUSD,5);
+    document.getElementById('priceGBPUSD').textContent='$'+fmt(p.GBPUSD,5);
+    document.getElementById('priceUSDJPY').textContent='\u00a5'+fmt(p.USDJPY,3);
+    document.getElementById('priceAUDUSD').textContent='$'+fmt(p.AUDUSD,5);
+    document.getElementById('priceXAUUSD').textContent='$'+fmt(p.XAUUSD,2);
+    document.getElementById('priceXAGUSD').textContent='$'+fmt(p.XAGUSD,3);
+    document.getElementById('priceBTCUSD').textContent='$'+parseFloat(p.BTCUSD||0).toLocaleString();
+    document.getElementById('priceETHUSD').textContent='$'+fmt(p.ETHUSD,2);
+  }catch(e){}
+}
+function getSample(){return[{id:1,pair:'XAU/USD',sym:'XAUUSD',dir:'buy',entry:'4497.50',tp:'4515.00',sl:'4488.00',rr:'1:2.1',quality:88,result:'win',pips:17,date:'2026-03-21'},{id:2,pair:'EUR/USD',sym:'EURUSD',dir:'buy',entry:'1.15610',tp:'1.15850',sl:'1.15480',rr:'1:1.9',quality:82,result:'win',pips:24,date:'2026-03-21'},{id:3,pair:'GBP/USD',sym:'GBPUSD',dir:'sell',entry:'1.33650',tp:'1.33350',sl:'1.33800',rr:'1:2.0',quality:79,result:'win',pips:30,date:'2026-03-20'},{id:4,pair:'XAG/USD',sym:'XAGUSD',dir:'buy',entry:'67.850',tp:'68.200',sl:'67.620',rr:'1:1.7',quality:76,result:'loss',pips:-23,date:'2026-03-20'},{id:5,pair:'USD/JPY',sym:'USDJPY',dir:'sell',entry:'158.920',tp:'158.450',sl:'159.150',rr:'1:2.0',quality:85,result:'win',pips:47,date:'2026-03-19'},{id:6,pair:'BTC/USD',sym:'BTCUSD',dir:'buy',entry:'67500.00',tp:'68200.00',sl:'67100.00',rr:'1:1.8',quality:80,result:'pending',pips:null,date:'2026-03-22'}];}
+async function loadResults(){
+  let results=getSample();
+  try{const res=await fetch('/api/performance');const d=await res.json();if(d.signals&&d.signals.length>0)results=d.signals;}catch(e){}
+  const closed=results.filter(r=>r.result!=='pending');
+  const wins=closed.filter(r=>r.result==='win');
+  const last30=results.slice(-30);
+  const lc=last30.filter(r=>r.result!=='pending');
+  const lw=lc.filter(r=>r.result==='win');
+  const wr=lc.length?Math.round(lw.length/lc.length*100):0;
+  let best=0,cur=0;results.forEach(r=>{if(r.result==='win'){cur++;best=Math.max(best,cur);}else if(r.result==='loss')cur=0;});
+  const rrs=results.map(r=>{const p=(r.rr||'1:1.5').split(':');return parseFloat(p[1])||1.5;});
+  const avgRR=rrs.length?rrs.reduce((a,b)=>a+b,0)/rrs.length:0;
+  document.getElementById('pubTotal').textContent=results.length;
+  document.getElementById('pubWinRate').textContent=lc.length?wr+'%':'New';
+  document.getElementById('pubRR').textContent='1:'+avgRR.toFixed(1);
+  document.getElementById('rTotal').textContent=results.length;
+  document.getElementById('rWinRate').textContent=lc.length?wr+'%':'New';
+  document.getElementById('rWins').textContent=wins.length;
+  document.getElementById('rRR').textContent='1:'+avgRR.toFixed(1);
+  document.getElementById('rStreak').textContent=best;
+  document.getElementById('resultsBody').innerHTML=[...results].reverse().slice(0,10).map(r=>`
+    <tr><td class="td-pair">${r.pair}</td><td><span class="td-dir ${r.dir}">${r.dir.toUpperCase()}</span></td>
+    <td class="td-mono">${r.entry}</td><td class="td-mono" style="color:var(--green)">${r.tp}</td>
+    <td class="td-mono" style="color:var(--red)">${r.sl}</td><td class="td-mono" style="color:var(--gold)">${r.rr}</td>
+    <td><span class="td-result ${r.result}">${r.result==='win'?'WIN':r.result==='loss'?'LOSS':'PENDING'}</span></td>
+    <td><span class="td-pips ${r.pips>0?'pos':r.pips<0?'neg':''}">${r.pips!=null?(r.pips>0?'+':'')+r.pips+' pips':'--'}</span></td>
+    <td class="td-mono">${r.date}</td></tr>`).join('');
+  document.getElementById('pubSignalsGrid').innerHTML=[...results].reverse().slice(0,6).map(r=>`
+    <div class="signal-card ${r.result==='pending'?'neutral':r.dir}">
+      <div class="sc-top"><span class="sc-pair">${r.pair}</span><span class="sc-badge ${r.result==='pending'?'pending':r.dir}">${r.result==='pending'?'LIVE':r.dir.toUpperCase()}</span></div>
+      <div class="sc-levels">
+        <div class="sc-level"><div class="sc-level-label">ENTRY</div><div class="sc-level-val">${r.entry}</div></div>
+        <div class="sc-level tp"><div class="sc-level-label">TP</div><div class="sc-level-val">${r.tp}</div></div>
+        <div class="sc-level sl"><div class="sc-level-label">SL</div><div class="sc-level-val">${r.sl}</div></div>
+      </div>
+      <div class="sc-footer"><span class="sc-rr">RR ${r.rr}</span><span style="font-family:var(--mono);font-size:10px;color:var(--text2)">${r.quality}/100</span><span class="sc-result ${r.result}">${r.result==='win'?'WIN':r.result==='loss'?'LOSS':'LIVE'}</span></div>
+    </div>`).join('');
+}
+function openPayModal(plan,amount){
+  currentPlan=plan;currentAmount=amount;
+  const names={monthly:'Monthly Plan',quarterly:'Quarterly Plan',annual:'Annual Plan'};
+  document.getElementById('payAmount').textContent='\u20a6'+amount.toLocaleString();
+  document.getElementById('payPlan').textContent=names[plan];
+  document.getElementById('payModal').classList.add('show');
+}
+function submitSub(){
+  const name=document.getElementById('subName').value.trim();
+  const user=document.getElementById('subUser').value.trim();
+  const ref=document.getElementById('subRef').value.trim();
+  if(!name||!user||!ref){alert('Please fill all fields');return;}
+  const pending=JSON.parse(localStorage.getItem('axion_pending_subs')||'[]');
+  pending.push({name,username:user.toLowerCase(),plan:currentPlan,amount:currentAmount,ref,date:new Date().toISOString()});
+  localStorage.setItem('axion_pending_subs',JSON.stringify(pending));
+  document.getElementById('payModal').classList.remove('show');
+  alert('Subscription submitted!\n\nAccount activated within 30 minutes.\nUsername: '+user.toLowerCase()+'\n\nJoin VIP: https://t.me/+1p6_13KsTF81YzM0');
+}
+window.addEventListener('load',()=>{loadPrices();loadResults();setInterval(loadPrices,15000);setInterval(loadResults,60000);});
+</script>
+</body>
+</html>
