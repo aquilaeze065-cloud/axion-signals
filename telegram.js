@@ -89,5 +89,121 @@ function sendTelegramText(text) {
   req.end();
 }
 
-module.exports = { sendTelegram, sendTelegramText };
-module.exports = { sendTelegram, sendTelegramText };
+
+// ── WELCOME NEW MEMBER ────────────────────────────────────
+function sendWelcomeMessage(username) {
+  const https = require('https');
+  const msg = `🚀 *Welcome to Axion Signals VIP!* 🚀
+
+Hello @${username}! You now have access to AI-powered forex signals.
+
+*HOW IT WORKS:*
+⚡ Signals fire automatically every 15 minutes
+🇬🇧 London open alert: 7AM UTC (8AM Nigeria)
+🇺🇸 NY open alert: 1PM UTC (2PM Nigeria)
+✅ Only HIGH quality signals (75+ score) are sent
+⏳ NO SIGNAL = market not ideal, stay patient
+
+*SIGNAL FORMAT:*
+📥 Entry price
+🎯 Take Profit (TP)
+🛑 Stop Loss (SL)
+📊 Risk/Reward ratio
+🤖 Trade Quality Score
+
+*RISK RULES:*
+- Never risk more than 1-2% per trade
+- Always use the position size calculator
+- Best sessions: London & New York open
+- Avoid trading 30min before major news
+
+*DASHBOARD:*
+🌐 axion-signals-production.up.railway.app
+
+⚠️ Not financial advice. Trade responsibly.
+
+Good luck and profitable trading! 💰`;
+
+  [TELEGRAM_CHAT, TELEGRAM_CHANNEL].forEach(chatId => {
+    const body = JSON.stringify({
+      chat_id: chatId,
+      text: msg,
+      parse_mode: 'Markdown'
+    });
+    const req = https.request({
+      hostname: 'api.telegram.org',
+      path: '/bot' + TELEGRAM_TOKEN + '/sendMessage',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => { res.resume(); });
+    req.on('error', () => {});
+    req.write(body);
+    req.end();
+  });
+  console.log('[Telegram] Welcome message sent for:', username);
+}
+
+module.exports = { sendTelegram, sendTelegramText, sendWelcomeMessage };
+
+
+// ── WELCOME NEW MEMBER ────────────────────────────────────
+function sendWelcomeMessage(username) {
+  const https = require('https');
+  const msg = `🚀 *Welcome to Axion Signals VIP!* 🚀
+
+Hello @${username}! You now have access to AI-powered forex signals.
+
+*HOW IT WORKS:*
+⚡ Signals fire automatically every 15 minutes
+🇬🇧 London open alert: 7AM UTC (8AM Nigeria)
+🇺🇸 NY open alert: 1PM UTC (2PM Nigeria)
+✅ Only HIGH quality signals (75+ score) are sent
+⏳ NO SIGNAL = market not ideal, stay patient
+
+*SIGNAL FORMAT:*
+📥 Entry price
+🎯 Take Profit (TP)
+🛑 Stop Loss (SL)
+📊 Risk/Reward ratio
+🤖 Trade Quality Score
+
+*RISK RULES:*
+- Never risk more than 1-2% per trade
+- Always use the position size calculator
+- Best sessions: London & New York open
+- Avoid trading 30min before major news
+
+*DASHBOARD:*
+🌐 axion-signals-production.up.railway.app
+
+⚠️ Not financial advice. Trade responsibly.
+
+Good luck and profitable trading! 💰`;
+
+  [TELEGRAM_CHAT, TELEGRAM_CHANNEL].forEach(chatId => {
+    const body = JSON.stringify({
+      chat_id: chatId,
+      text: msg,
+      parse_mode: 'Markdown'
+    });
+    const req = https.request({
+      hostname: 'api.telegram.org',
+      path: '/bot' + TELEGRAM_TOKEN + '/sendMessage',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => { res.resume(); });
+    req.on('error', () => {});
+    req.write(body);
+    req.end();
+  });
+  console.log('[Telegram] Welcome message sent for:', username);
+}
+
+module.exports = { sendTelegram, sendTelegramText, sendWelcomeMessage };
+

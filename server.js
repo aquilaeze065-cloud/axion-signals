@@ -1,4 +1,4 @@
-const { sendTelegram, sendTelegramText } = require('./telegram');
+const { sendTelegram, sendTelegramText, sendWelcomeMessage } = require('./telegram');
 const http=require('http'),https=require('https'),fs=require('fs'),path=require('path'),url=require('url');
 const PORT=8080,DIR=__dirname;
 const MIME={'.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.ico':'image/x-icon'};
@@ -126,6 +126,24 @@ http.createServer(async(req,res)=>{
     return;
   }
 
+
+  // Welcome new member endpoint
+  if(pathname==='/api/welcome'&&req.method==='POST'){
+    let body='';
+    req.on('data',c=>body+=c);
+    req.on('end',async()=>{
+      try{
+        const {username}=JSON.parse(body);
+        await sendWelcomeMessage(username||'Member');
+        res.writeHead(200,{'Content-Type':'application/json'});
+        res.end(JSON.stringify({ok:true}));
+      }catch(e){
+        res.writeHead(500);
+        res.end(JSON.stringify({ok:false,error:e.message}));
+      }
+    });
+    return;
+  }
 
   // Groq AI proxy
   if(pathname==='/api/groq'&&req.method==='POST'){
