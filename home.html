@@ -228,8 +228,16 @@
     <div class="section-label">Live Signals</div>
     <div class="section-title">Recent <span>Signal Activity</span></div>
     <div class="section-sub">Every signal includes entry, take profit, stop loss and risk/reward ratio based on real M15 candle analysis.</div>
-    <div class="signals-grid" id="pubSignalsGrid"></div>
-    <div style="text-align:center;margin-top:24px"><a href="login.html" class="btn-primary" style="display:inline-flex">Access Live Dashboard</a></div>
+    <div style="position:relative">
+      <div class="signals-grid" id="pubSignalsGrid" style="filter:blur(6px);pointer-events:none;user-select:none"></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,20,0.7);border-radius:12px;backdrop-filter:blur(2px)">
+        <div style="font-size:36px;margin-bottom:12px">🔒</div>
+        <div style="font-family:var(--cond);font-size:22px;font-weight:800;color:#fff;margin-bottom:8px">Members Only</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:20px;text-align:center;max-width:300px">Subscribe to access live signals with full Entry, TP and SL levels</div>
+        <a href="#pricing" class="btn-primary" style="font-size:14px;padding:12px 24px">Subscribe to Unlock</a>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:24px"><a href="login.html" class="btn-secondary" style="display:inline-flex">Already a member? Login</a></div>
   </div>
 </section>
 <section>
