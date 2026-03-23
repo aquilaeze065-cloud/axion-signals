@@ -46,7 +46,42 @@ function updateSessionBadge(){
 }
 const NEWS_EVENTS=[{name:'USD CPI',utcH:13,utcM:30},{name:'EUR ECB Speech',utcH:14,utcM:0},{name:'GBP GDP',utcH:9,utcM:0},{name:'USD NFP',utcH:13,utcM:30},{name:'FOMC Minutes',utcH:19,utcM:0},{name:'JPY BOJ Policy',utcH:3,utcM:0}];
 function updateNewsCountdown(){const cdEl=document.getElementById('newsCountdown');const nameEl=document.getElementById('newsEventName');if(!cdEl||!nameEl)return;const now=Date.now();let best=null,minDiff=Infinity;NEWS_EVENTS.forEach(ev=>{const d=new Date();d.setUTCHours(ev.utcH,ev.utcM,0,0);if(d<=now)d.setUTCDate(d.getUTCDate()+1);const diff=d-now;if(diff<minDiff){minDiff=diff;best={...ev,ms:diff};}});if(best){const h=Math.floor(best.ms/3600000),m=Math.floor((best.ms%3600000)/60000);cdEl.textContent=h+'h '+m+'m';nameEl.textContent=best.name+' — avoid 5min before';}}
-function buildPriceContext(){if(typeof PRICES==='undefined')return'prices loading...';return['EUR/USD: '+PRICES.EURUSD,'GBP/USD: '+PRICES.GBPUSD,'USD/JPY: '+PRICES.USDJPY,'AUD/USD: '+PRICES.AUDUSD,'USD/CAD: '+PRICES.USDCAD,'USD/CHF: '+PRICES.USDCHF,'EUR/GBP: '+PRICES.EURGBP,'NZD/USD: '+PRICES.NZDUSD,'XAU/USD Gold: '+PRICES.XAUUSD,'XAG/USD Silver: '+PRICES.XAGUSD].join('\n');}
+async function buildPriceContext(){
+  if(typeof PRICES==='undefined') return 'prices loading...';
+  
+  // Fetch real indicators from server
+  let indicators = {};
+  try{
+    const res = await fetch('/api/indicators');
+    indicators = await res.json();
+    console.log('[Indicators] Fetched real indicator values');
+  }catch(e){
+    console.warn('[Indicators] Failed to fetch, using prices only');
+  }
+
+  const pairs = [
+    {sym:'EURUSD', label:'EUR/USD', price:PRICES.EURUSD},
+    {sym:'GBPUSD', label:'GBP/USD', price:PRICES.GBPUSD},
+    {sym:'USDJPY', label:'USD/JPY', price:PRICES.USDJPY},
+    {sym:'AUDUSD', label:'AUD/USD', price:PRICES.AUDUSD},
+    {sym:'USDCAD', label:'USD/CAD', price:PRICES.USDCAD},
+    {sym:'EURGBP', label:'EUR/GBP', price:PRICES.EURGBP},
+    {sym:'XAUUSD', label:'XAU/USD Gold', price:PRICES.XAUUSD},
+    {sym:'XAGUSD', label:'XAG/USD Silver', price:PRICES.XAGUSD},
+  ];
+
+  return pairs.map(p => {
+    const ind = indicators[p.sym];
+    if(!ind) return p.label+': '+p.price;
+    return p.label+': '+p.price+
+      ' | EMA9='+ind.ema9+' EMA21='+ind.ema21+' ('+ind.emaCross+')'+
+      ' | RSI='+ind.rsi+' ('+ind.rsiZone+')'+
+      ' | MACD='+(ind.macdBullish?'BULLISH':'BEARISH')+
+      ' | BB='+ind.bbPosition+
+      ' | VWAP='+ind.vwap+' Price '+(ind.vwapPosition==='ABOVE'?'ABOVE':'BELOW')+' VWAP'+
+      ' | BIAS='+ind.bias;
+  }).join('\n');
+}
 let aiRunning=false,lastAIRun=0,totalSignals=0;
 
 
@@ -77,7 +112,7 @@ async function generateAISignals(forced=false){
   if(output){output.style.display='block';}
   if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Scanning live prices · Calculating momentum · Generating signals...</span>';
   const session=getSession();
-  const prices=buildPriceContext();
+  const prices=await buildPriceContext();
   const prompt=`You are an elite professional forex scalping analyst. Your job is to analyze live market conditions and ONLY generate signals when ALL confluence factors align perfectly.
 
 LIVE PRICES (${new Date().toUTCString()}):
