@@ -162,20 +162,21 @@ REMEMBER: A missed trade is better than a bad trade. Quality over quantity.`;
       if(aiText)aiText.innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:32px;margin-bottom:10px">⏳</div><div style="font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:700;margin-bottom:8px">NO STRONG SIGNALS</div><div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">'+(parsed.summary||'Market conditions not ideal. Waiting for better setup.')+'</div><div style="font-size:11px;color:var(--red);font-family:var(--mono)">Avoid: '+(parsed.avoid||'All pairs — stay patient')+'</div><div style="font-size:10px;color:var(--text3);margin-top:10px;font-family:var(--mono)">Next scan in 15 min</div></div>';
       const vEl=document.getElementById('aiVerdict');
       if(vEl){vEl.textContent='NO SIGNAL';vEl.className='intel-val red';}
-      // Send NO SIGNAL notification to Telegram
-      fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          _customMsg:'⏳ AXION SIGNALS SCAN COMPLETE\n\nNo strong signals at this time.\n\nMarket: '+(parsed.market_condition||'CHOPPY')+'\nCondition: '+(parsed.summary||'Waiting for better setup')+'\n\nAvoid: '+(parsed.avoid||'All pairs')+'\n\nNext scan in 15 minutes.',
-          pair:'SCAN',sym:'SCAN',dir:'hold',tf:'--',entry:'--',tp:'--',sl:'--',confidence:0,rr:'--',reason:'',duration:'--'
-        })
-      }).catch(()=>{});
+      // NO SIGNAL — don't send to Telegram, just update dashboard
       if(btn){btn.disabled=false;btn.innerHTML='✦ Generate AI Signals';}
       aiRunning=false;
       return;
     }
     renderAISignals(parsed);
     if(typeof window.buildSignalList!=='undefined')window.buildSignalList(parsed.signals);
-    if(typeof alertNewSignals!=='undefined')alertNewSignals(parsed.signals);
+    // Only alert signals with valid TP and SL
+    const validSignals = parsed.signals.filter(s=>
+      s.tp && s.sl && s.entry &&
+      parseFloat(s.tp) !== parseFloat(s.entry) &&
+      parseFloat(s.sl) !== parseFloat(s.entry) &&
+      (s.quality_score||s.confidence||0) >= 75
+    );
+    if(typeof alertNewSignals!=='undefined')alertNewSignals(validSignals);
     if(typeof window.addTrade!=='undefined'&&parsed.signals){
       parsed.signals.forEach(s=>window.addTrade(s));
     }
