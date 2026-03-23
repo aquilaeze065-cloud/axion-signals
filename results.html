@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Axion Signals — Public Results Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#0d1117;--bg2:#131722;--bg3:#1a2030;--bg4:#1e2535;--border:#252d40;--green:#00e676;--red:#ff3d5a;--gold:#ffbb00;--blue:#4488ff;--text:#c8d4e8;--text2:#7a8aaa;--text3:#3a4a6a;--mono:'DM Mono',monospace;--cond:'Outfit',sans-serif;--main:'DM Sans',sans-serif;}
+    body{background:var(--bg);color:var(--text);font-family:var(--main);min-height:100vh;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,187,0,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,187,0,0.02) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+    .topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;}
+    .logo{display:flex;align-items:center;gap:10px;}
+    .logo-text{font-family:var(--cond);font-size:18px;font-weight:700;color:#fff;}
+    .logo-text span{color:var(--gold);}
+    .logo-tag{font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:2px;margin-top:1px;}
+    .nav-links{display:flex;gap:8px;}
+    .nav-link{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:6px;text-decoration:none;transition:all .2s;}
+    .nav-link:hover{border-color:var(--gold);color:var(--gold);}
+    .nav-link.primary{background:linear-gradient(135deg,var(--gold),#ff8800);color:#000;border:none;font-weight:700;}
+    .hero{text-align:center;padding:50px 20px 30px;}
+    .hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:20px;padding:5px 14px;font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:2px;margin-bottom:16px;}
+    .hero h1{font-family:var(--cond);font-size:42px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:10px;}
+    .hero h1 span{color:var(--gold);}
+    .hero p{font-size:13px;color:var(--text2);max-width:500px;margin:0 auto 6px;line-height:1.7;}
+    .hero-disclaimer{font-size:10px;color:var(--text3);font-family:var(--mono);}
+    .stats-wrap{max-width:1000px;margin:0 auto;padding:0 20px 30px;}
+    .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+    .stat-label{font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+    .stat-val{font-family:var(--cond);font-size:26px;font-weight:900;}
+    .stat-val.green{color:var(--green);}
+    .stat-val.gold{color:var(--gold);}
+    .stat-val.blue{color:var(--blue);}
+    .stat-val.white{color:#fff;}
+    .stat-sub{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:4px;}
+    .filter-wrap{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+    .filter-title{font-family:var(--cond);font-size:16px;font-weight:700;color:#fff;}
+    .filter-tabs{display:flex;gap:6px;}
+    .ftab{padding:5px 14px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:5px;transition:all .2s;}
+    .ftab:hover,.ftab.active{border-color:var(--gold);color:var(--gold);}
+    .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:30px;}
+    table{width:100%;border-collapse:collapse;}
+    th{padding:10px 14px;text-align:left;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);background:var(--bg3);border-bottom:1px solid var(--border);}
+    td{padding:11px 14px;font-size:12px;border-bottom:1px solid rgba(37,45,64,0.5);vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,0.02);}
+    .pair-cell{font-family:var(--cond);font-size:14px;font-weight:700;color:#fff;}
+    .dir-badge{display:inline-flex;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:9px;font-weight:800;}
+    .dir-badge.buy{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+    .dir-badge.sell{background:rgba(255,61,90,0.15);color:var(--red);border:1px solid rgba(255,61,90,0.3);}
+    .result-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:9px;font-weight:700;}
+    .result-badge.win{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
+    .result-badge.loss{background:rgba(255,61,90,0.1);color:var(--red);border:1px solid rgba(255,61,90,0.2);}
+    .result-badge.pending{background:rgba(255,187,0,0.1);color:var(--gold);border:1px solid rgba(255,187,0,0.2);}
+    .pips-val{font-family:var(--mono);font-size:12px;font-weight:700;}
+    .pips-val.pos{color:var(--green);}
+    .pips-val.neg{color:var(--red);}
+    .mono-cell{font-family:var(--mono);font-size:11px;color:var(--text2);}
+    .quality-bar{display:flex;align-items:center;gap:6px;}
+    .qbar{width:50px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+    .qbar-fill{height:100%;border-radius:3px;}
+    .score-txt{font-family:var(--mono);font-size:10px;color:var(--text2);}
+    .monthly-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:16px;}
+    .month-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+    .month-name{font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:1px;margin-bottom:6px;}
+    .month-val{font-family:var(--cond);font-size:16px;font-weight:800;}
+    .cta-section{background:linear-gradient(135deg,rgba(255,187,0,0.08),rgba(255,100,0,0.04));border:1px solid rgba(255,187,0,0.2);border-radius:16px;padding:32px;text-align:center;max-width:600px;margin:0 auto 40px;}
+    .cta-title{font-family:var(--cond);font-size:28px;font-weight:900;color:#fff;margin-bottom:10px;}
+    .cta-title span{color:var(--gold);}
+    .cta-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7;}
+    .cta-btn{display:inline-block;padding:14px 32px;background:linear-gradient(135deg,var(--gold),#ff8800);border-radius:8px;color:#000;font-family:var(--cond);font-size:16px;font-weight:800;text-decoration:none;transition:all .2s;}
+    .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,187,0,0.4);}
+    .footer{text-align:center;padding:20px;font-family:var(--mono);font-size:10px;color:var(--text3);border-top:1px solid var(--border);}
+    .admin-update{background:var(--bg2);border:1px solid rgba(255,187,0,0.2);border-radius:10px;padding:16px;margin-bottom:20px;display:none;}
+    .admin-update.show{display:block;}
+    .admin-title{font-family:var(--cond);font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;}
+    .admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .admin-input{padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:#fff;font-family:var(--mono);font-size:11px;outline:none;width:100%;}
+    .admin-btn{padding:9px 16px;background:linear-gradient(135deg,var(--gold),#ff8800);border:none;border-radius:6px;color:#000;font-family:var(--cond);font-size:12px;font-weight:700;cursor:pointer;}
+    @media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr);}.monthly-grid{grid-template-columns:repeat(3,1fr);}th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5){display:none;}}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><path d="M4 28L14 4h4L28 28h-4.5l-2.5-6H11l-2.5 6H4z" fill="url(#rGrad)"/><path d="M12.5 18l3.5-8 3.5 8h-7z" fill="#0d1117"/><defs><linearGradient id="rGrad" x1="4" y1="4" x2="28" y2="28"><stop stop-color="#FFB800"/><stop offset="1" stop-color="#FF6B00"/></linearGradient></defs></svg>
+    <div><div class="logo-text"><span>Axion</span> Signals</div><div class="logo-tag">PRECISION SCALPING SYSTEM</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="login.html" class="nav-link">Member Login</a>
+    <a href="subscribe.html" class="nav-link primary">Subscribe</a>
+  </div>
+</header>
+<div class="hero">
+  <div class="hero-tag">VERIFIED TRACK RECORD</div>
+  <h1>Our <span>Signal Results</span><br/>Fully Transparent</h1>
+  <p>Every signal we send is logged and tracked publicly. No cherry-picking. No fake screenshots. Real results from our precision scalping system.</p>
+  <p class="hero-disclaimer">Past performance does not guarantee future results. Forex trading involves risk.</p>
+</div>
+<div class="stats-wrap">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Signals</div><div class="stat-val white" id="statTotal">0</div><div class="stat-sub">All time</div></div>
+    <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val green" id="statWinRate">--</div><div class="stat-sub">Last 30 trades</div></div>
+    <div class="stat-card"><div class="stat-label">Total Wins</div><div class="stat-val green" id="statWins">0</div><div class="stat-sub">Profitable trades</div></div>
+    <div class="stat-card"><div class="stat-label">Avg R:R</div><div class="stat-val gold" id="statRR">--</div><div class="stat-sub">Risk/Reward ratio</div></div>
+    <div class="stat-card"><div class="stat-label">Best Streak</div><div class="stat-val blue" id="statStreak">0</div><div class="stat-sub">Consecutive wins</div></div>
+  </div>
+  <div class="admin-update" id="adminUpdate">
+    <div class="admin-title">Update Signal Result — Admin Only</div>
+    <div class="admin-grid">
+      <select class="admin-input" id="updateId"><option value="">Select Signal...</option></select>
+      <select class="admin-input" id="updateResult"><option value="win">WIN</option><option value="loss">LOSS</option><option value="pending">PENDING</option></select>
+      <input class="admin-input" id="updatePips" placeholder="Pips e.g. +12 or -8" type="number"/>
+      <button class="admin-btn" onclick="doUpdate()">Update Result</button>
+    </div>
+  </div>
+  <div class="filter-wrap">
+    <div class="filter-title">Signal History</div>
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="filter('all',this)">All</button>
+      <button class="ftab" onclick="filter('win',this)">Wins</button>
+      <button class="ftab" onclick="filter('loss',this)">Losses</button>
+      <button class="ftab" onclick="filter('pending',this)">Pending</button>
+      <button class="ftab" onclick="filter('gold',this)">Metals</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pair</th><th>Dir</th><th>Entry</th><th>TP</th><th>SL</th><th>R:R</th><th>Quality</th><th>Result</th><th>Pips</th><th>Date</th></tr></thead>
+      <tbody id="resultsTable"></tbody>
+    </table>
+  </div>
+  <div style="margin-bottom:30px">
+    <div style="font-family:var(--cond);font-size:16px;font-weight:700;color:#fff;margin-bottom:16px">Monthly Performance</div>
+    <div class="monthly-grid" id="monthlyGrid"></div>
+  </div>
+</div>
+<div style="padding:0 20px">
+  <div class="cta-section">
+    <div class="cta-title">Join <span>Axion Signals</span></div>
+    <div class="cta-sub">Precision data-driven scalping signals with real-time Telegram alerts and professional TradingView charts.</div>
+    <a href="subscribe.html" class="cta-btn">Start Trading Smarter</a>
+  </div>
+</div>
+<div class="footer">2026 Axion Signals — Precision Scalping System — Not financial advice — Powered by Real-time Market Data</div>
+<script>
+function getR(){try{return JSON.parse(localStorage.getItem('axion_results'))||sample();}catch(e){return sample();}}
+function saveR(r){localStorage.setItem('axion_results',JSON.stringify(r));}
+function sample(){return[{id:1,pair:'XAU/USD',sym:'XAUUSD',dir:'buy',entry:'4497.50',tp:'4515.00',sl:'4488.00',rr:'1:2.1',quality:88,result:'win',pips:17,date:'2026-03-21',reason:'EMA cross + RSI 54 + MACD bullish'},{id:2,pair:'EUR/USD',sym:'EURUSD',dir:'buy',entry:'1.15610',tp:'1.15850',sl:'1.15480',rr:'1:1.9',quality:82,result:'win',pips:24,date:'2026-03-21',reason:'EMA9 above EMA21 + RSI 56'},{id:3,pair:'GBP/USD',sym:'GBPUSD',dir:'sell',entry:'1.33650',tp:'1.33350',sl:'1.33800',rr:'1:2.0',quality:79,result:'win',pips:30,date:'2026-03-20',reason:'EMA bearish cross + RSI 44'},{id:4,pair:'XAG/USD',sym:'XAGUSD',dir:'buy',entry:'67.850',tp:'68.200',sl:'67.620',rr:'1:1.7',quality:76,result:'loss',pips:-23,date:'2026-03-20',reason:'BB squeeze — news disrupted'},{id:5,pair:'USD/JPY',sym:'USDJPY',dir:'sell',entry:'158.920',tp:'158.450',sl:'159.150',rr:'1:2.0',quality:85,result:'win',pips:47,date:'2026-03-19',reason:'Strong EMA cross + RSI 42'},{id:6,pair:'AUD/USD',sym:'AUDUSD',dir:'buy',entry:'0.70650',tp:'0.70850',sl:'0.70520',rr:'1:1.5',quality:77,result:'pending',pips:null,date:'2026-03-22',reason:'EMA bullish + RSI 51'}];}
+let cf='all';
+function checkAdmin(){if(sessionStorage.getItem('axion_admin')==='1'){document.getElementById('adminUpdate').classList.add('show');popSel();}}
+function popSel(){const s=document.getElementById('updateId');const r=getR();s.innerHTML='<option value="">Select...</option>'+r.map(x=>`<option value="${x.id}">${x.pair} ${x.dir.toUpperCase()} ${x.date} (${x.result})</option>`).join('');}
+function doUpdate(){const id=parseInt(document.getElementById('updateId').value);const res=document.getElementById('updateResult').value;const pips=parseFloat(document.getElementById('updatePips').value)||null;if(!id)return alert('Select a signal');const r=getR();const i=r.findIndex(x=>x.id===id);if(i>-1){r[i].result=res;r[i].pips=pips;saveR(r);renderAll();popSel();alert('Updated!');}}
+function renderAll(){const r=getR();renderStats(r);renderTable(r);renderMonthly(r);}
+function renderStats(r){const closed=r.filter(x=>x.result!=='pending');const wins=closed.filter(x=>x.result==='win');const last30=r.slice(-30);const lc=last30.filter(x=>x.result!=='pending');const lw=lc.filter(x=>x.result==='win');const wr=lc.length?Math.round(lw.length/lc.length*100):0;let best=0,cur=0;r.forEach(x=>{if(x.result==='win'){cur++;best=Math.max(best,cur);}else if(x.result==='loss')cur=0;});const rrs=r.map(x=>{const p=(x.rr||'1:1.5').split(':');return parseFloat(p[1])||1.5;});const avgRR=rrs.length?rrs.reduce((a,b)=>a+b,0)/rrs.length:0;document.getElementById('statTotal').textContent=r.length;document.getElementById('statWinRate').textContent=lc.length?wr+'%':'New';document.getElementById('statWins').textContent=wins.length;document.getElementById('statRR').textContent='1:'+avgRR.toFixed(1);document.getElementById('statStreak').textContent=best;}
+function renderTable(r){const f=cf==='all'?r:cf==='gold'?r.filter(x=>x.sym==='XAUUSD'||x.sym==='XAGUSD'):r.filter(x=>x.result===cf);const tb=document.getElementById('resultsTable');if(!f.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text2);font-family:var(--mono)">No signals yet</td></tr>';return;}tb.innerHTML=[...f].reverse().map(x=>{const qc=x.quality>=85?'var(--green)':x.quality>=75?'var(--gold)':'var(--red)';return`<tr><td class="pair-cell">${x.pair}</td><td><span class="dir-badge ${x.dir}">${x.dir.toUpperCase()}</span></td><td class="mono-cell">${x.entry}</td><td class="mono-cell" style="color:var(--green)">${x.tp}</td><td class="mono-cell" style="color:var(--red)">${x.sl}</td><td class="mono-cell" style="color:var(--gold)">${x.rr}</td><td><div class="quality-bar"><div class="qbar"><div class="qbar-fill" style="width:${x.quality}%;background:${qc}"></div></div><span class="score-txt">${x.quality}/100</span></div></td><td><span class="result-badge ${x.result}">${x.result==='win'?'WIN':x.result==='loss'?'LOSS':'PENDING'}</span></td><td><span class="pips-val ${x.pips>0?'pos':x.pips<0?'neg':''}">${x.pips!=null?(x.pips>0?'+':'')+x.pips+' pips':'--'}</span></td><td class="mono-cell">${x.date}</td></tr>`;}).join('');}
+function renderMonthly(r){const m={};r.forEach(x=>{const k=x.date.slice(0,7);if(!m[k])m[k]={wins:0,losses:0,total:0};if(x.result==='win')m[k].wins++;else if(x.result==='loss')m[k].losses++;m[k].total++;});const g=document.getElementById('monthlyGrid');const e=Object.entries(m).slice(-6);if(!e.length){g.innerHTML='<div style="color:var(--text2);font-size:11px">No data yet</div>';return;}g.innerHTML=e.map(([k,d])=>{const rate=d.total?Math.round(d.wins/d.total*100):0;const c=rate>=60?'var(--green)':rate>=45?'var(--gold)':'var(--red)';const mn=new Date(k+'-01').toLocaleString('default',{month:'short',year:'2-digit'});return`<div class="month-card"><div class="month-name">${mn}</div><div class="month-val" style="color:${c}">${rate}%</div><div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:3px">${d.wins}W/${d.losses}L</div></div>`;}).join('');}
+function filter(t,btn){cf=t;document.querySelectorAll('.ftab').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');renderTable(getR());}
+function addSignalToResults(s){const r=getR();r.push({id:Date.now(),pair:s.pair,sym:s.sym,dir:s.dir,entry:s.entry,tp:s.tp,sl:s.sl,rr:s.rr,quality:s.quality_score||s.confidence||80,result:'pending',pips:null,date:new Date().toISOString().split('T')[0],reason:s.reason||''});saveR(r);}
+window.addSignalToResults=addSignalToResults;
+window.addEventListener('load',()=>{checkAdmin();renderAll();});
+</script>
+</body>
+</html>
