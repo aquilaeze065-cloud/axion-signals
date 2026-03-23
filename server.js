@@ -37,6 +37,18 @@ async function fetchAll(){
     p.XAGUSD=cache.prices?.XAGUSD||(parseFloat(p.XAUUSD||'4497')/66).toFixed(3);
     console.log('[Silver] fallback $'+p.XAGUSD);
   }
+  // Fetch BTC price
+  try{
+    const bd=await fetchJSON('https://api.twelvedata.com/price?symbol=BTC/USD&apikey='+process.env.TWELVE_KEY);
+    if(bd&&bd.price){p.BTCUSD=parseFloat(bd.price).toFixed(2);console.log('[BTC] $'+p.BTCUSD);}
+    else throw new Error('no price');
+  }catch(e){p.BTCUSD=cache.prices?.BTCUSD||'67891.00';}
+  // Fetch ETH price
+  try{
+    const ed=await fetchJSON('https://api.twelvedata.com/price?symbol=ETH/USD&apikey='+process.env.TWELVE_KEY);
+    if(ed&&ed.price){p.ETHUSD=parseFloat(ed.price).toFixed(2);console.log('[ETH] $'+p.ETHUSD);}
+    else throw new Error('no price');
+  }catch(e){p.ETHUSD=cache.prices?.ETHUSD||'2055.00';}
   p.ts=now;cache.prices=p;cache.lastUpdate=now;
   return p;
 }
@@ -169,7 +181,7 @@ function getIndicators(sym, currentPrice) {
 
 
 // ── TWELVE DATA — REAL CANDLE FETCHER ────────────────────
-const TWELVE_KEY = '04869eeca9684386bb55ffdb1a2fc9b0';
+const TWELVE_KEY = process.env.TWELVE_KEY || '04869eeca9684386bb55ffdb1a2fc9b0';
 const TWELVE_SYMBOLS = {
   EURUSD:  'EUR/USD',
   GBPUSD:  'GBP/USD',
@@ -181,6 +193,8 @@ const TWELVE_SYMBOLS = {
   NZDUSD:  'NZD/USD',
   XAUUSD:  'XAU/USD',
   XAGUSD:  'XAG/USD',
+  BTCUSD:  'BTC/USD',
+  ETHUSD:  'ETH/USD',
 };
 
 let candleCache = {};
@@ -212,7 +226,7 @@ async function fetchAllCandles(){
   if(now - candleLastUpdate < 14 * 60 * 1000) return candleCache; // cache 14 min
   
   console.log('[Candles] Fetching real M15 candle data...');
-  const pairs = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','AUDUSD'];
+  const pairs = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','AUDUSD','BTCUSD','ETHUSD'];
   
   for(const sym of pairs){
     const candles = await fetchCandles(sym);

@@ -132,7 +132,7 @@ function doLogout(){sessionStorage.removeItem('axion_session');window.location.h
   <div class="tradingview-widget-container" style="height:38px">
     <div class="tradingview-widget-container__widget"></div>
     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-    {"symbols":[{"proName":"FX:EURUSD","title":"EUR/USD"},{"proName":"FX:GBPUSD","title":"GBP/USD"},{"proName":"FX:USDJPY","title":"USD/JPY"},{"proName":"FX:AUDUSD","title":"AUD/USD"},{"proName":"FX:USDCAD","title":"USD/CAD"},{"proName":"TVC:GOLD","title":"XAU/USD"},{"proName":"TVC:SILVER","title":"XAG/USD"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
+    {"symbols":[{"proName":"FX:EURUSD","title":"EUR/USD"},{"proName":"FX:GBPUSD","title":"GBP/USD"},{"proName":"FX:USDJPY","title":"USD/JPY"},{"proName":"FX:AUDUSD","title":"AUD/USD"},{"proName":"FX:USDCAD","title":"USD/CAD"},{"proName":"TVC:GOLD","title":"XAU/USD"},{"proName":"TVC:SILVER","title":"XAG/USD"},{"proName":"COINBASE:BTCUSD","title":"BTC/USD"},{"proName":"COINBASE:ETHUSD","title":"ETH/USD"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
     </script>
   </div>
 </div>
@@ -167,6 +167,8 @@ function doLogout(){sessionStorage.removeItem('axion_session');window.location.h
         <button class="ptab" onclick="switchPair('FX:USDCAD','USDCAD',this)">USD/CAD</button>
         <button class="ptab" onclick="switchPair('TVC:SILVER','XAGUSD',this)">XAG/USD</button>
         <button class="ptab" onclick="switchPair('FX:EURGBP','EURGBP',this)">EUR/GBP</button>
+        <button class="ptab" onclick="switchPair('COINBASE:BTCUSD','BTCUSD',this)" style="border-color:rgba(255,140,0,0.3);color:#ff8c00">BTC/USD</button>
+        <button class="ptab" onclick="switchPair('COINBASE:ETHUSD','ETHUSD',this)" style="border-color:rgba(100,149,237,0.3);color:#6495ed">ETH/USD</button>
       </div>
       <div class="tf-tabs">
         <button class="tftab active" onclick="switchTF('15',this)">15m</button>
@@ -261,6 +263,8 @@ function doLogout(){sessionStorage.removeItem('axion_session');window.location.h
             <option value="jpy">JPY Pairs (USD/JPY etc)</option>
             <option value="gold">Gold (XAU/USD)</option>
             <option value="silver">Silver (XAG/USD)</option>
+            <option value="btc">Bitcoin (BTC/USD)</option>
+            <option value="eth">Ethereum (ETH/USD)</option>
           </select>
         </div>
       </div>

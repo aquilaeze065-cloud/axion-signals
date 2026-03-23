@@ -68,6 +68,8 @@ async function buildPriceContext(){
     {sym:'XAUUSD',label:'XAU/USD Gold',price:PRICES.XAUUSD},
     {sym:'XAGUSD',label:'XAG/USD Silver',price:PRICES.XAGUSD},
     {sym:'EURGBP',label:'EUR/GBP',price:PRICES.EURGBP},
+    {sym:'BTCUSD',label:'BTC/USD Bitcoin',price:PRICES.BTCUSD},
+    {sym:'ETHUSD',label:'ETH/USD Ethereum',price:PRICES.ETHUSD},
   ];
   return pairs.map(p=>{
     const c=candles[p.sym];
@@ -112,6 +114,15 @@ LIVE PRICES + REAL M15 CANDLE ANALYSIS:
 ${prices}
 
 ACTIVE SESSION: ${session.name} (${session.quality})
+
+ASSET TYPES AND SL RULES:
+- Forex pairs: SL minimum 20 pips
+- Gold (XAUUSD): SL minimum $15
+- Silver (XAGUSD): SL minimum $0.40
+- Bitcoin (BTCUSD): SL minimum $200, TP minimum $400 (crypto is volatile!)
+- Ethereum (ETHUSD): SL minimum $30, TP minimum $60
+- Crypto trades 24/7 — always active regardless of session
+- For crypto: wider SL is better — BTC can wick $100+ in minutes
 
 SIGNAL RULES — STRICT:
 1. Only generate signal if ALL align: EMA cross + RSI 40-60 + MACD confirms + BB position + clear structure
@@ -258,6 +269,8 @@ function calcPosition(){
   if(pair==='forex'){pipValue=riskAmt/slPips;lotSize=pipValue/10;units=lotSize*100000;}
   else if(pair==='jpy'){pipValue=riskAmt/slPips;lotSize=pipValue/9.09;units=lotSize*100000;}
   else if(pair==='gold'){pipValue=riskAmt/slPips;lotSize=pipValue/100;units=lotSize*100;}
+  else if(pair==='btc'){pipValue=riskAmt/slPips;lotSize=pipValue/1;units=lotSize;}
+  else if(pair==='eth'){pipValue=riskAmt/slPips;lotSize=pipValue/1;units=lotSize;}
   else{pipValue=riskAmt/slPips;lotSize=pipValue/50;units=lotSize*5000;}
   const rEl=document.getElementById('calcRiskAmt');
   const lEl=document.getElementById('calcLotSize');
