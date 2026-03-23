@@ -296,12 +296,7 @@ function checkSessionAlerts(){
     londonNotified=true;
     showSessionBanner('london','🇬🇧 LONDON SESSION OPEN — Best time to trade! High liquidity & volatility now active');
     playSessionAlert();
-    sendSessionTelegram('🇬🇧 LONDON SESSION NOW OPEN
-
-Best scalping conditions active!
-High liquidity · Tight spreads · Strong moves
-
-⚡ Check Axion Signals for live entries');
+    sendSessionTelegram('LONDON SESSION NOW OPEN - Best scalping conditions active! High liquidity, tight spreads, strong moves. Check Axion Signals for live entries');
   }
 
   // New York Open: 13:00-13:30 UTC
@@ -309,12 +304,7 @@ High liquidity · Tight spreads · Strong moves
     nyNotified=true;
     showSessionBanner('newyork','🇺🇸 NEW YORK SESSION OPEN — High impact moves expected! London/NY overlap active');
     playSessionAlert();
-    sendSessionTelegram('🇺🇸 NEW YORK SESSION NOW OPEN
-
-London/NY overlap — strongest signals!
-High volatility · Maximum liquidity
-
-⚡ Check Axion Signals for live entries');
+    sendSessionTelegram('NEW YORK SESSION NOW OPEN - London/NY overlap, strongest signals! High volatility, maximum liquidity. Check Axion Signals for live entries');
   }
 }
 
