@@ -167,6 +167,191 @@ function getIndicators(sym, currentPrice) {
 }
 
 
+
+// ── TWELVE DATA — REAL CANDLE FETCHER ────────────────────
+const TWELVE_KEY = '04869eeca9684386bb55ffdb1a2fc9b0';
+const TWELVE_SYMBOLS = {
+  EURUSD:  'EUR/USD',
+  GBPUSD:  'GBP/USD',
+  USDJPY:  'USD/JPY',
+  AUDUSD:  'AUD/USD',
+  USDCAD:  'USD/CAD',
+  USDCHF:  'USD/CHF',
+  EURGBP:  'EUR/GBP',
+  NZDUSD:  'NZD/USD',
+  XAUUSD:  'XAU/USD',
+  XAGUSD:  'XAG/USD',
+};
+
+let candleCache = {};
+let candleLastUpdate = 0;
+
+async function fetchCandles(sym, interval='15min', bars=50){
+  try{
+    const tsym = TWELVE_SYMBOLS[sym] || sym;
+    const url = `https://api.twelvedata.com/time_series?symbol=${tsym}&interval=${interval}&outputsize=${bars}&apikey=${TWELVE_KEY}`;
+    const data = await fetchJSON(url);
+    if(data.status === 'error') throw new Error(data.message);
+    if(!data.values || !data.values.length) throw new Error('No candles returned');
+    // Return as array of {open,high,low,close,datetime}
+    return data.values.map(c => ({
+      open:  parseFloat(c.open),
+      high:  parseFloat(c.high),
+      low:   parseFloat(c.low),
+      close: parseFloat(c.close),
+      dt:    c.datetime
+    })).reverse(); // oldest first
+  } catch(e) {
+    console.error('[TwelveData] ' + sym + ':', e.message);
+    return null;
+  }
+}
+
+async function fetchAllCandles(){
+  const now = Date.now();
+  if(now - candleLastUpdate < 14 * 60 * 1000) return candleCache; // cache 14 min
+  
+  console.log('[Candles] Fetching real M15 candle data...');
+  const pairs = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','AUDUSD'];
+  
+  for(const sym of pairs){
+    const candles = await fetchCandles(sym);
+    if(candles) {
+      candleCache[sym] = candles;
+      console.log('[Candles] ' + sym + ': ' + candles.length + ' candles loaded');
+    }
+    await new Promise(r => setTimeout(r, 500)); // rate limit
+  }
+  
+  candleLastUpdate = now;
+  return candleCache;
+}
+
+// ── TECHNICAL ANALYSIS FROM REAL CANDLES ─────────────────
+function analyzeCandles(candles, sym){
+  if(!candles || candles.length < 21) return null;
+  
+  const closes = candles.map(c => c.close);
+  const highs   = candles.map(c => c.high);
+  const lows    = candles.map(c => c.low);
+  const last    = candles[candles.length-1];
+  const prev    = candles[candles.length-2];
+  
+  // EMA calculations
+  function ema(data, period){
+    const k = 2/(period+1);
+    let e = data.slice(0,period).reduce((a,b)=>a+b,0)/period;
+    for(let i=period;i<data.length;i++) e = data[i]*k + e*(1-k);
+    return e;
+  }
+  
+  const ema9  = ema(closes, 9);
+  const ema21 = ema(closes, 21);
+  
+  // RSI
+  function rsi(data, period=14){
+    let g=0,l=0;
+    for(let i=data.length-period;i<data.length;i++){
+      const d=data[i]-data[i-1];
+      if(d>0)g+=d; else l+=Math.abs(d);
+    }
+    const ag=g/period, al=l/period;
+    if(al===0) return 100;
+    return 100 - 100/(1+ag/al);
+  }
+  
+  const rsiVal = rsi(closes);
+  
+  // MACD
+  const macdLine = ema(closes,12) - ema(closes,26);
+  const signal9  = macdLine; // simplified
+  
+  // Swing highs/lows (last 20 candles)
+  const recent = candles.slice(-20);
+  const swingHigh = Math.max(...recent.map(c=>c.high));
+  const swingLow  = Math.min(...recent.map(c=>c.low));
+  
+  // Current candle pattern
+  const isBullEngulf = last.close > last.open && 
+                       last.close > prev.high && 
+                       last.open  < prev.close;
+  const isBearEngulf = last.close < last.open && 
+                       last.close < prev.low  && 
+                       last.open  > prev.close;
+  
+  // Bollinger Bands
+  const period = 20;
+  const slice  = closes.slice(-period);
+  const mean   = slice.reduce((a,b)=>a+b,0)/period;
+  const std    = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/period);
+  const bbUpper = mean + 2*std;
+  const bbLower = mean - 2*std;
+  
+  // ATR (Average True Range) - key for SL placement
+  function calcATR(candles, period=14){
+    const trs = [];
+    for(let i=1;i<candles.length;i++){
+      const tr = Math.max(
+        candles[i].high - candles[i].low,
+        Math.abs(candles[i].high - candles[i-1].close),
+        Math.abs(candles[i].low  - candles[i-1].close)
+      );
+      trs.push(tr);
+    }
+    return trs.slice(-period).reduce((a,b)=>a+b,0)/period;
+  }
+  
+  const atr = calcATR(candles);
+  
+  // Determine bias
+  const emaBias  = ema9 > ema21 ? 'BULLISH' : 'BEARISH';
+  const rsiBias  = rsiVal > 55 ? 'BULLISH' : rsiVal < 45 ? 'BEARISH' : 'NEUTRAL';
+  const macdBias = macdLine > 0 ? 'BULLISH' : 'BEARISH';
+  const priceBias = last.close > mean ? 'ABOVE_MA' : 'BELOW_MA';
+  
+  // Overall bias
+  const bullCount = [emaBias,rsiBias,macdBias].filter(b=>b==='BULLISH').length;
+  const bearCount = [emaBias,rsiBias,macdBias].filter(b=>b==='BEARISH').length;
+  const overallBias = bullCount >= 2 ? 'BUY' : bearCount >= 2 ? 'SELL' : 'NEUTRAL';
+  
+  // SL levels based on real structure + ATR
+  const atrMultiplier = 1.5;
+  const slBuy  = parseFloat((swingLow  - atr * atrMultiplier).toFixed(5));
+  const slSell = parseFloat((swingHigh + atr * atrMultiplier).toFixed(5));
+  
+  // TP levels (2x ATR minimum)
+  const tpBuy  = parseFloat((last.close + atr * 3).toFixed(5));
+  const tpSell = parseFloat((last.close - atr * 3).toFixed(5));
+  
+  return {
+    sym,
+    currentPrice: last.close,
+    ema9:  parseFloat(ema9.toFixed(5)),
+    ema21: parseFloat(ema21.toFixed(5)),
+    emaCross: emaBias,
+    rsi:   parseFloat(rsiVal.toFixed(2)),
+    rsiZone: rsiBias,
+    macd:  parseFloat(macdLine.toFixed(6)),
+    macdBias,
+    bbUpper: parseFloat(bbUpper.toFixed(5)),
+    bbLower: parseFloat(bbLower.toFixed(5)),
+    bbMid:   parseFloat(mean.toFixed(5)),
+    bbPosition: last.close > bbUpper ? 'ABOVE_UPPER' : last.close < bbLower ? 'BELOW_LOWER' : 'INSIDE',
+    atr:    parseFloat(atr.toFixed(5)),
+    swingHigh: parseFloat(swingHigh.toFixed(5)),
+    swingLow:  parseFloat(swingLow.toFixed(5)),
+    isBullEngulfing: isBullEngulf,
+    isBearEngulfing: isBearEngulf,
+    lastCandle: { open: last.open, high: last.high, low: last.low, close: last.close, dt: last.dt },
+    suggestedSL_BUY:  slBuy,
+    suggestedSL_SELL: slSell,
+    suggestedTP_BUY:  tpBuy,
+    suggestedTP_SELL: tpSell,
+    overallBias,
+    confluence: bullCount >= 2 ? bullCount + '/3 bullish' : bearCount >= 2 ? bearCount + '/3 bearish' : 'mixed',
+  };
+}
+
 // ── SERVER-SIDE PERFORMANCE TRACKING ─────────────────────
 const fs_perf = require('fs');
 const PERF_FILE = './performance_data.json';
@@ -244,6 +429,24 @@ http.createServer(async(req,res)=>{
   }
 
 
+
+
+  // Real candle analysis endpoint
+  if(pathname==='/api/candles'){
+    try{
+      const candles = await fetchAllCandles();
+      const analysis = {};
+      for(const [sym, data] of Object.entries(candles)){
+        analysis[sym] = analyzeCandles(data, sym);
+      }
+      res.writeHead(200,{'Content-Type':'application/json'});
+      res.end(JSON.stringify(analysis));
+    }catch(e){
+      res.writeHead(500);
+      res.end(JSON.stringify({error:e.message}));
+    }
+    return;
+  }
 
   // Performance tracking — save signal
   if(pathname==='/api/performance/add'&&req.method==='POST'){

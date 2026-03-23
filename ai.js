@@ -1,4 +1,47 @@
-function isMarketOpen(){
+async function buildPriceContext(){
+  if(typeof PRICES==='undefined') return 'prices loading...';
+  
+  // Fetch real candle analysis
+  let candles = {};
+  try{
+    const res = await fetch('/api/candles');
+    candles = await res.json();
+    console.log('[Candles] Real candle data loaded for', Object.keys(candles).length, 'pairs');
+  }catch(e){
+    console.warn('[Candles] Failed, using price-only mode');
+  }
+
+  const pairs = [
+    {sym:'EURUSD', label:'EUR/USD', price:PRICES.EURUSD},
+    {sym:'GBPUSD', label:'GBP/USD', price:PRICES.GBPUSD},
+    {sym:'USDJPY', label:'USD/JPY', price:PRICES.USDJPY},
+    {sym:'AUDUSD', label:'AUD/USD', price:PRICES.AUDUSD},
+    {sym:'USDCAD', label:'USD/CAD', price:PRICES.USDCAD},
+    {sym:'XAUUSD', label:'XAU/USD Gold', price:PRICES.XAUUSD},
+    {sym:'XAGUSD', label:'XAG/USD Silver', price:PRICES.XAGUSD},
+    {sym:'EURGBP', label:'EUR/GBP', price:PRICES.EURGBP},
+  ];
+
+  return pairs.map(p => {
+    const c = candles[p.sym];
+    if(!c) return p.label+': '+p.price+' (no candle data)';
+    
+    return p.label+': '+p.price+'\n'
+      +'  EMA9='+c.ema9+' EMA21='+c.ema21+' → '+c.emaCross+'\n'
+      +'  RSI='+c.rsi+' ('+c.rsiZone+')\n'
+      +'  MACD='+c.macd+' ('+c.macdBias+')\n'
+      +'  BB: Upper='+c.bbUpper+' Lower='+c.bbLower+' Price='+c.bbPosition+'\n'
+      +'  ATR(14)='+c.atr+' (use for SL sizing)\n'
+      +'  Swing High='+c.swingHigh+' Swing Low='+c.swingLow+'\n'
+      +'  Suggested SL BUY='+c.suggestedSL_BUY+' SELL='+c.suggestedSL_SELL+'\n'
+      +'  Suggested TP BUY='+c.suggestedTP_BUY+' SELL='+c.suggestedTP_SELL+'\n'
+      +'  Last Candle: O='+c.lastCandle.open+' H='+c.lastCandle.high+' L='+c.lastCandle.low+' C='+c.lastCandle.close+'\n'
+      +'  Pattern: '+(c.isBullEngulfing?'BULLISH ENGULF':c.isBearEngulfing?'BEARISH ENGULF':'no pattern')+'\n'
+      +'  Confluence: '+c.confluence+' → BIAS: '+c.overallBias;
+  }).join('\n\n');
+}
+
+async function buildPriceContext_OLD(){function isMarketOpen(){
   const now = new Date();
   const day = now.getUTCDay();
   const hour = now.getUTCHours();
@@ -113,7 +156,21 @@ async function generateAISignals(forced=false){
   if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Scanning live prices · Calculating momentum · Generating signals...</span>';
   const session=getSession();
   const prices=await buildPriceContext();
-  const prompt=`You are an elite professional forex scalping analyst. Your job is to analyze live market conditions and ONLY generate signals when ALL confluence factors align perfectly.
+  const prompt=`You are an elite professional forex scalping analyst with access to REAL M15 candle data.
+
+IMPORTANT: You now have access to:
+- Real OHLC candle data (last 50 M15 candles)
+- ATR-based SL suggestions (structure-based, not guessed)
+- Real swing highs and lows
+- Actual EMA/RSI/MACD calculated from real price history
+- Candlestick patterns (engulfing, etc)
+
+USE THE SUGGESTED SL AND TP VALUES PROVIDED — they are calculated from:
+- Real swing high/low levels
+- 1.5x ATR buffer beyond structure
+- 3x ATR for take profit
+
+Only override suggested SL/TP if you have a stronger structural reason. Your job is to analyze live market conditions and ONLY generate signals when ALL confluence factors align perfectly.
 
 LIVE PRICES (${new Date().toUTCString()}):
 ${prices}
