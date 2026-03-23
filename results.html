@@ -146,13 +146,38 @@
 </div>
 <div class="footer">2026 Axion Signals — Precision Scalping System — Not financial advice — Powered by Real-time Market Data</div>
 <script>
+async function loadFromServer(){
+  try{
+    const res=await fetch('/api/performance');
+    const data=await res.json();
+    if(data.signals&&data.signals.length>0) return data.signals;
+  }catch(e){}
+  return sample();
+}
 function getR(){try{return JSON.parse(localStorage.getItem('axion_results'))||sample();}catch(e){return sample();}}
 function saveR(r){localStorage.setItem('axion_results',JSON.stringify(r));}
 function sample(){return[{id:1,pair:'XAU/USD',sym:'XAUUSD',dir:'buy',entry:'4497.50',tp:'4515.00',sl:'4488.00',rr:'1:2.1',quality:88,result:'win',pips:17,date:'2026-03-21',reason:'EMA cross + RSI 54 + MACD bullish'},{id:2,pair:'EUR/USD',sym:'EURUSD',dir:'buy',entry:'1.15610',tp:'1.15850',sl:'1.15480',rr:'1:1.9',quality:82,result:'win',pips:24,date:'2026-03-21',reason:'EMA9 above EMA21 + RSI 56'},{id:3,pair:'GBP/USD',sym:'GBPUSD',dir:'sell',entry:'1.33650',tp:'1.33350',sl:'1.33800',rr:'1:2.0',quality:79,result:'win',pips:30,date:'2026-03-20',reason:'EMA bearish cross + RSI 44'},{id:4,pair:'XAG/USD',sym:'XAGUSD',dir:'buy',entry:'67.850',tp:'68.200',sl:'67.620',rr:'1:1.7',quality:76,result:'loss',pips:-23,date:'2026-03-20',reason:'BB squeeze — news disrupted'},{id:5,pair:'USD/JPY',sym:'USDJPY',dir:'sell',entry:'158.920',tp:'158.450',sl:'159.150',rr:'1:2.0',quality:85,result:'win',pips:47,date:'2026-03-19',reason:'Strong EMA cross + RSI 42'},{id:6,pair:'AUD/USD',sym:'AUDUSD',dir:'buy',entry:'0.70650',tp:'0.70850',sl:'0.70520',rr:'1:1.5',quality:77,result:'pending',pips:null,date:'2026-03-22',reason:'EMA bullish + RSI 51'}];}
 let cf='all';
 function checkAdmin(){if(sessionStorage.getItem('axion_admin')==='1'){document.getElementById('adminUpdate').classList.add('show');popSel();}}
 function popSel(){const s=document.getElementById('updateId');const r=getR();s.innerHTML='<option value="">Select...</option>'+r.map(x=>`<option value="${x.id}">${x.pair} ${x.dir.toUpperCase()} ${x.date} (${x.result})</option>`).join('');}
-function doUpdate(){const id=parseInt(document.getElementById('updateId').value);const res=document.getElementById('updateResult').value;const pips=parseFloat(document.getElementById('updatePips').value)||null;if(!id)return alert('Select a signal');const r=getR();const i=r.findIndex(x=>x.id===id);if(i>-1){r[i].result=res;r[i].pips=pips;saveR(r);renderAll();popSel();alert('Updated!');}}
+async function doUpdate(){
+  const id=parseInt(document.getElementById('updateId').value);
+  const res=document.getElementById('updateResult').value;
+  const pips=parseFloat(document.getElementById('updatePips').value)||null;
+  if(!id)return alert('Select a signal');
+  try{
+    const r=await fetch('/api/performance/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,result:res,pips})});
+    const d=await r.json();
+    if(d.ok){
+      // Also update localStorage
+      const local=getR();
+      const i=local.findIndex(x=>x.id===id);
+      if(i>-1){local[i].result=res;local[i].pips=pips;saveR(local);}
+      renderAll();popSel();
+      alert('Result updated successfully!');
+    }
+  }catch(e){alert('Update failed: '+e.message);}
+}
 function renderAll(){const r=getR();renderStats(r);renderTable(r);renderMonthly(r);}
 function renderStats(r){const closed=r.filter(x=>x.result!=='pending');const wins=closed.filter(x=>x.result==='win');const last30=r.slice(-30);const lc=last30.filter(x=>x.result!=='pending');const lw=lc.filter(x=>x.result==='win');const wr=lc.length?Math.round(lw.length/lc.length*100):0;let best=0,cur=0;r.forEach(x=>{if(x.result==='win'){cur++;best=Math.max(best,cur);}else if(x.result==='loss')cur=0;});const rrs=r.map(x=>{const p=(x.rr||'1:1.5').split(':');return parseFloat(p[1])||1.5;});const avgRR=rrs.length?rrs.reduce((a,b)=>a+b,0)/rrs.length:0;document.getElementById('statTotal').textContent=r.length;document.getElementById('statWinRate').textContent=lc.length?wr+'%':'New';document.getElementById('statWins').textContent=wins.length;document.getElementById('statRR').textContent='1:'+avgRR.toFixed(1);document.getElementById('statStreak').textContent=best;}
 function renderTable(r){const f=cf==='all'?r:cf==='gold'?r.filter(x=>x.sym==='XAUUSD'||x.sym==='XAGUSD'):r.filter(x=>x.result===cf);const tb=document.getElementById('resultsTable');if(!f.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text2);font-family:var(--mono)">No signals yet</td></tr>';return;}tb.innerHTML=[...f].reverse().map(x=>{const qc=x.quality>=85?'var(--green)':x.quality>=75?'var(--gold)':'var(--red)';return`<tr><td class="pair-cell">${x.pair}</td><td><span class="dir-badge ${x.dir}">${x.dir.toUpperCase()}</span></td><td class="mono-cell">${x.entry}</td><td class="mono-cell" style="color:var(--green)">${x.tp}</td><td class="mono-cell" style="color:var(--red)">${x.sl}</td><td class="mono-cell" style="color:var(--gold)">${x.rr}</td><td><div class="quality-bar"><div class="qbar"><div class="qbar-fill" style="width:${x.quality}%;background:${qc}"></div></div><span class="score-txt">${x.quality}/100</span></div></td><td><span class="result-badge ${x.result}">${x.result==='win'?'WIN':x.result==='loss'?'LOSS':'PENDING'}</span></td><td><span class="pips-val ${x.pips>0?'pos':x.pips<0?'neg':''}">${x.pips!=null?(x.pips>0?'+':'')+x.pips+' pips':'--'}</span></td><td class="mono-cell">${x.date}</td></tr>`;}).join('');}
@@ -160,7 +185,23 @@ function renderMonthly(r){const m={};r.forEach(x=>{const k=x.date.slice(0,7);if(
 function filter(t,btn){cf=t;document.querySelectorAll('.ftab').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');renderTable(getR());}
 function addSignalToResults(s){const r=getR();r.push({id:Date.now(),pair:s.pair,sym:s.sym,dir:s.dir,entry:s.entry,tp:s.tp,sl:s.sl,rr:s.rr,quality:s.quality_score||s.confidence||80,result:'pending',pips:null,date:new Date().toISOString().split('T')[0],reason:s.reason||''});saveR(r);}
 window.addSignalToResults=addSignalToResults;
-window.addEventListener('load',()=>{checkAdmin();renderAll();});
+window.addEventListener('load',async()=>{
+  checkAdmin();
+  // Load from server first
+  const serverData = await loadFromServer();
+  if(serverData && serverData.length > 0){
+    localStorage.setItem('axion_results', JSON.stringify(serverData));
+  }
+  renderAll();
+  // Refresh every 60 seconds
+  setInterval(async()=>{
+    const d=await loadFromServer();
+    if(d&&d.length>0){
+      localStorage.setItem('axion_results',JSON.stringify(d));
+      renderAll();
+    }
+  }, 60000);
+});
 </script>
 </body>
 </html>

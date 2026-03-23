@@ -212,6 +212,12 @@ REMEMBER: A missed trade is better than a bad trade. Quality over quantity.`;
       (s.quality_score||s.confidence||0) >= 75
     );
     if(typeof alertNewSignals!=='undefined')alertNewSignals(validSignals);
+    // Save to server-side performance tracker
+    if(parsed.signals){
+      parsed.signals.forEach(s=>{
+        fetch('/api/performance/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)}).catch(()=>{});
+      });
+    }
     if(typeof window.addTrade!=='undefined'&&parsed.signals){
       parsed.signals.forEach(s=>window.addTrade(s));
     }
@@ -229,6 +235,27 @@ REMEMBER: A missed trade is better than a bad trade. Quality over quantity.`;
   if(btn){btn.disabled=false;btn.innerHTML='✦ Generate AI Signals';}
   aiRunning=false;
 }
+function calcPips(entry, level, sym){
+  const e=parseFloat(entry), l=parseFloat(level);
+  if(sym==='USDJPY') return Math.abs((l-e)*100).toFixed(1);
+  if(sym==='XAUUSD') return '$'+Math.abs(l-e).toFixed(2);
+  if(sym==='XAGUSD') return '$'+Math.abs(l-e).toFixed(3);
+  return Math.abs((l-e)*10000).toFixed(1);
+}
+
+function getScoreColor(score){
+  if(score>=85) return 'var(--green)';
+  if(score>=75) return 'var(--gold)';
+  return 'var(--red)';
+}
+
+function getScoreLabel(score){
+  if(score>=90) return 'EXCELLENT';
+  if(score>=80) return 'STRONG';
+  if(score>=75) return 'GOOD';
+  return 'WEAK';
+}
+
 function renderAISignals(parsed){
   const grid=document.getElementById('signalsGrid');
   if(!grid||!parsed?.signals?.length)return;
@@ -238,11 +265,52 @@ function renderAISignals(parsed){
     const entry=parseFloat(s.entry).toFixed(dec);
     const tp=parseFloat(s.tp).toFixed(dec);
     const sl=parseFloat(s.sl).toFixed(dec);
-    return '<div class="sig-list-item" onclick="setActiveSignal('+JSON.stringify(s).replace(/"/g,"&quot;")+')" style="animation-delay:'+i*.1+'s">'
-      +'<div class="sli-left"><span class="sli-pair">'+(s.pair||s.sym)+'</span>'
-      +'<span class="dir-pill-sm '+s.dir+'">'+s.dir.toUpperCase()+'</span></div>'
-      +'<div class="sli-right"><span class="sli-price">'+entry+'</span>'
-      +'<span class="sli-conf">'+s.confidence+'%</span></div></div>';
+    const tpPips=calcPips(entry,tp,s.sym);
+    const slPips=calcPips(entry,sl,s.sym);
+    const score=s.quality_score||s.confidence||80;
+    const scoreColor=getScoreColor(score);
+    const scoreLabel=getScoreLabel(score);
+    return '<div class="sig-list-item enhanced" onclick="setActiveSignal('+JSON.stringify(s).replace(/"/g,"&quot;")+')" style="animation-delay:'+i*.1+'s;cursor:pointer;padding:14px;">'
+      // Header row
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span class="sli-pair" style="font-size:15px">'+(s.pair||s.sym)+'</span>'
+          +'<span class="dir-pill-sm '+s.dir+'">'+s.dir.toUpperCase()+'</span>'
+          +'<span style="font-family:var(--mono);font-size:9px;color:var(--text2)">'+s.tf+'</span>'
+        +'</div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-family:var(--mono);font-size:10px;color:'+scoreColor+';font-weight:700">'+scoreLabel+'</div>'
+          +'<div style="font-family:var(--mono);font-size:9px;color:var(--text3)">'+score+'/100</div>'
+        +'</div>'
+      +'</div>'
+      // Score bar
+      +'<div style="height:3px;background:var(--bg4);border-radius:2px;margin-bottom:10px;overflow:hidden">'
+        +'<div style="height:100%;width:'+score+'%;background:'+scoreColor+';border-radius:2px;transition:width .8s ease"></div>'
+      +'</div>'
+      // Trade levels
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">'
+        +'<div style="background:rgba(255,255,255,0.04);border-radius:5px;padding:7px 8px;text-align:center">'
+          +'<div style="font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1px;margin-bottom:3px">ENTRY</div>'
+          +'<div style="font-family:var(--mono);font-size:12px;color:#fff;font-weight:700">'+entry+'</div>'
+        +'</div>'
+        +'<div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.15);border-radius:5px;padding:7px 8px;text-align:center">'
+          +'<div style="font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1px;margin-bottom:3px">TAKE PROFIT</div>'
+          +'<div style="font-family:var(--mono);font-size:12px;color:var(--green);font-weight:700">'+tp+'</div>'
+          +'<div style="font-family:var(--mono);font-size:9px;color:var(--green);opacity:.7">+'+tpPips+(isMetal?'':' pips')+'</div>'
+        +'</div>'
+        +'<div style="background:rgba(255,61,90,0.08);border:1px solid rgba(255,61,90,0.15);border-radius:5px;padding:7px 8px;text-align:center">'
+          +'<div style="font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1px;margin-bottom:3px">STOP LOSS</div>'
+          +'<div style="font-family:var(--mono);font-size:12px;color:var(--red);font-weight:700">'+sl+'</div>'
+          +'<div style="font-family:var(--mono);font-size:9px;color:var(--red);opacity:.7">-'+slPips+(isMetal?'':' pips')+'</div>'
+        +'</div>'
+      +'</div>'
+      // Footer
+      +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="font-family:var(--mono);font-size:9px;color:var(--gold)">RR '+s.rr+'</div>'
+        +'<div style="font-family:var(--mono);font-size:9px;color:var(--text3)">'+(s.duration||'15-20 min')+'</div>'
+        +'<div style="font-family:var(--mono);font-size:9px;color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(s.reason||'')+'">'+(s.reason||'').slice(0,30)+'...</div>'
+      +'</div>'
+      +'</div>';
   }).join('');
 }
 function generateAIAnalysis(){generateAISignals(true);}

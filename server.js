@@ -166,6 +166,25 @@ function getIndicators(sym, currentPrice) {
   };
 }
 
+
+// ── SERVER-SIDE PERFORMANCE TRACKING ─────────────────────
+const fs_perf = require('fs');
+const PERF_FILE = './performance_data.json';
+
+function loadPerformance(){
+  try{
+    if(fs_perf.existsSync(PERF_FILE)){
+      return JSON.parse(fs_perf.readFileSync(PERF_FILE,'utf8'));
+    }
+  }catch(e){}
+  return {signals:[]};
+}
+
+function savePerformance(data){
+  try{fs_perf.writeFileSync(PERF_FILE,JSON.stringify(data,null,2));}
+  catch(e){console.error('[Perf] Save failed:',e.message);}
+}
+
 http.createServer(async(req,res)=>{
   const pathname=url.parse(req.url).pathname;
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -224,6 +243,65 @@ http.createServer(async(req,res)=>{
     return;
   }
 
+
+
+  // Performance tracking — save signal
+  if(pathname==='/api/performance/add'&&req.method==='POST'){
+    let body='';
+    req.on('data',c=>body+=c);
+    req.on('end',()=>{
+      try{
+        const signal=JSON.parse(body);
+        const perf=loadPerformance();
+        perf.signals.push({
+          id:Date.now(),
+          pair:signal.pair,sym:signal.sym,
+          dir:signal.dir,
+          entry:signal.entry,tp:signal.tp,sl:signal.sl,
+          rr:signal.rr,
+          quality:signal.quality_score||signal.confidence||80,
+          result:'pending',pips:null,
+          date:new Date().toISOString().split('T')[0],
+          reason:signal.reason||''
+        });
+        savePerformance(perf);
+        res.writeHead(200,{'Content-Type':'application/json'});
+        res.end(JSON.stringify({ok:true,total:perf.signals.length}));
+      }catch(e){res.writeHead(500);res.end(JSON.stringify({ok:false}));}
+    });
+    return;
+  }
+
+  // Performance tracking — get all results
+  if(pathname==='/api/performance'&&req.method==='GET'){
+    const perf=loadPerformance();
+    res.writeHead(200,{'Content-Type':'application/json'});
+    res.end(JSON.stringify(perf));
+    return;
+  }
+
+  // Performance tracking — update result (admin)
+  if(pathname==='/api/performance/update'&&req.method==='POST'){
+    let body='';
+    req.on('data',c=>body+=c);
+    req.on('end',()=>{
+      try{
+        const {id,result,pips}=JSON.parse(body);
+        const perf=loadPerformance();
+        const idx=perf.signals.findIndex(s=>s.id===id);
+        if(idx>-1){
+          perf.signals[idx].result=result;
+          perf.signals[idx].pips=pips||null;
+          savePerformance(perf);
+          res.writeHead(200,{'Content-Type':'application/json'});
+          res.end(JSON.stringify({ok:true}));
+        }else{
+          res.writeHead(404);res.end(JSON.stringify({ok:false,error:'Signal not found'}));
+        }
+      }catch(e){res.writeHead(500);res.end(JSON.stringify({ok:false}));}
+    });
+    return;
+  }
 
   // Welcome new member endpoint
   if(pathname==='/api/welcome'&&req.method==='POST'){
