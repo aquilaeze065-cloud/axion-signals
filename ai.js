@@ -1,3 +1,31 @@
+function isMarketOpen(){
+  const now = new Date();
+  const day = now.getUTCDay();
+  const hour = now.getUTCHours();
+  const min = now.getUTCMinutes();
+  const timeInMins = hour * 60 + min;
+  if(day === 6) return false;
+  if(day === 0 && timeInMins < 21*60) return false;
+  if(day === 5 && timeInMins >= 21*60) return false;
+  return true;
+}
+
+function getMarketClosedMessage(){
+  const now = new Date();
+  const day = now.getUTCDay();
+  const nextOpen = new Date(now);
+  const daysUntilSunday = (7 - day) % 7 || 7;
+  nextOpen.setUTCDate(nextOpen.getUTCDate() + (day === 0 ? 0 : daysUntilSunday));
+  nextOpen.setUTCHours(21, 0, 0, 0);
+  if(day === 0 && now.getUTCHours() < 21){
+    nextOpen.setUTCDate(now.getUTCDate());
+  }
+  const diff = nextOpen - now;
+  const h = Math.floor(diff/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  return 'Market closed for weekend. Opens in ' + h + 'h ' + m + 'm (Sunday 9PM UTC)';
+}
+
 function getSession(){const h=new Date().getUTCHours();if(h>=22||h<7)return{name:'SYDNEY SESSION',color:'var(--gold)',quality:'LOW'};if(h>=7&&h<12)return{name:'LONDON SESSION',color:'var(--green)',quality:'OPTIMAL'};if(h>=12&&h<17)return{name:'NEW YORK SESSION',color:'var(--blue)',quality:'GOOD'};return{name:'TOKYO SESSION',color:'var(--gold)',quality:'MODERATE'};}
 function updateSessionBadge(){
   const el=document.getElementById('sessionBadge');
@@ -21,39 +49,6 @@ function updateNewsCountdown(){const cdEl=document.getElementById('newsCountdown
 function buildPriceContext(){if(typeof PRICES==='undefined')return'prices loading...';return['EUR/USD: '+PRICES.EURUSD,'GBP/USD: '+PRICES.GBPUSD,'USD/JPY: '+PRICES.USDJPY,'AUD/USD: '+PRICES.AUDUSD,'USD/CAD: '+PRICES.USDCAD,'USD/CHF: '+PRICES.USDCHF,'EUR/GBP: '+PRICES.EURGBP,'NZD/USD: '+PRICES.NZDUSD,'XAU/USD Gold: '+PRICES.XAUUSD,'XAG/USD Silver: '+PRICES.XAGUSD].join('\n');}
 let aiRunning=false,lastAIRun=0,totalSignals=0;
 
-function isMarketOpen(){
-  const now = new Date();
-  const day = now.getUTCDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  const hour = now.getUTCHours();
-  const min = now.getUTCMinutes();
-  const timeInMins = hour * 60 + min;
-
-  // Market closed: Saturday all day + Sunday before 21:00 UTC + Friday after 21:00 UTC
-  if(day === 6) return false; // Saturday - fully closed
-  if(day === 0 && timeInMins < 21*60) return false; // Sunday before 9PM UTC
-  if(day === 5 && timeInMins >= 21*60) return false; // Friday after 9PM UTC
-  return true;
-}
-
-function getMarketClosedMessage(){
-  const now = new Date();
-  const day = now.getUTCDay();
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
-  // Calculate next open (Sunday 21:00 UTC)
-  const nextOpen = new Date(now);
-  const daysUntilSunday = (7 - day) % 7 || 7;
-  nextOpen.setUTCDate(nextOpen.getUTCDate() + (day === 0 ? 0 : daysUntilSunday));
-  nextOpen.setUTCHours(21, 0, 0, 0);
-  if(day === 0 && now.getUTCHours() < 21) {
-    nextOpen.setUTCDate(now.getUTCDate());
-  }
-
-  const diff = nextOpen - now;
-  const h = Math.floor(diff/3600000);
-  const m = Math.floor((diff%3600000)/60000);
-  return 'Market closed for weekend. Opens in ' + h + 'h ' + m + 'm (Sunday 9PM UTC)';
-}
 
 async function generateAISignals(forced=false){
   const now=Date.now();
