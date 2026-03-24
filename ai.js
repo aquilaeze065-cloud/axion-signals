@@ -59,6 +59,14 @@ async function buildPriceContext(){
     candles=await res.json();
     console.log('[Candles] Loaded for',Object.keys(candles).length,'pairs');
   }catch(e){console.warn('[Candles] Failed:',e.message);}
+
+  // Fetch Alpha Vantage sentiment + spread data
+  let avData={};
+  try{
+    const avRes=await fetch('/api/sentiment');
+    avData=await avRes.json();
+    console.log('[AV] Sentiment and spread data loaded');
+  }catch(e){console.warn('[AV] Failed:',e.message);}
   const pairs=[
     {sym:'EURUSD',label:'EUR/USD',price:PRICES.EURUSD},
     {sym:'GBPUSD',label:'GBP/USD',price:PRICES.GBPUSD},
@@ -71,6 +79,18 @@ async function buildPriceContext(){
     {sym:'BTCUSD',label:'BTC/USD Bitcoin',price:PRICES.BTCUSD},
     {sym:'ETHUSD',label:'ETH/USD Ethereum',price:PRICES.ETHUSD},
   ];
+  // Build sentiment summary
+  const goldSentiment = avData.sentiment?.gold?.slice(0,3).map(n=>n.sentiment+' ('+n.score.toFixed(2)+')').join(', ') || 'No data';
+  const forexSentiment = avData.sentiment?.forex?.slice(0,3).map(n=>n.sentiment+' ('+n.score.toFixed(2)+')').join(', ') || 'No data';
+  const eurusdSpread = avData.quotes?.EURUSD?.spread || 'unknown';
+  const goldSpread = avData.quotes?.XAUUSD?.spread || 'unknown';
+
+  const sentimentContext = '\nMARKET SENTIMENT (Alpha Vantage News):'
+    +'\n  Gold/XAU News Sentiment: '+goldSentiment
+    +'\n  Forex News Sentiment: '+forexSentiment
+    +'\n  EUR/USD Current Spread: '+eurusdSpread+' (trade only if spread < 0.0003)'
+    +'\n  Gold Current Spread: $'+goldSpread+' (trade only if spread < 1.0)';
+
   return pairs.map(p=>{
     const c=candles[p.sym];
     if(!c)return p.label+': '+p.price+' (no candle data)';
@@ -86,7 +106,7 @@ async function buildPriceContext(){
       +'  LastCandle: O='+c.lastCandle.open+' H='+c.lastCandle.high+' L='+c.lastCandle.low+' C='+c.lastCandle.close+'\n'
       +'  Pattern: '+(c.isBullEngulfing?'BULL_ENGULF':c.isBearEngulfing?'BEAR_ENGULF':'none')+'\n'
       +'  Confluence: '+c.confluence+' BIAS='+c.overallBias;
-  }).join('\n\n');
+  }).join('\n\n') + sentimentContext;
 }
 let aiRunning=false,lastAIRun=0,totalSignals=0;
 async function generateAISignals(forced=false){

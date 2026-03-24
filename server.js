@@ -180,6 +180,87 @@ function getIndicators(sym, currentPrice) {
 
 
 
+
+// ── ALPHA VANTAGE — NEWS SENTIMENT + FOREX QUOTES ────────
+const AV_KEY = process.env.AV_KEY || '4UKJUP94OEZ21JJL';
+
+async function fetchAVForexQuote(fromSym, toSym){
+  try{
+    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${fromSym}&to_currency=${toSym}&apikey=${AV_KEY}`;
+    const data = await fetchJSON(url);
+    const rate = data['Realtime Currency Exchange Rate'];
+    if(!rate) throw new Error('No rate data');
+    return {
+      price: parseFloat(rate['5. Exchange Rate']),
+      bid:   parseFloat(rate['8. Bid Price']),
+      ask:   parseFloat(rate['9. Ask Price']),
+      spread: parseFloat((parseFloat(rate['9. Ask Price']) - parseFloat(rate['8. Bid Price'])).toFixed(5)),
+      updated: rate['6. Last Refreshed']
+    };
+  }catch(e){
+    console.error('[AV Forex]', fromSym+toSym, e.message);
+    return null;
+  }
+}
+
+async function fetchAVNewsSentiment(tickers){
+  try{
+    const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${tickers}&limit=10&apikey=${AV_KEY}`;
+    const data = await fetchJSON(url);
+    if(!data.feed) throw new Error('No news feed');
+    const items = data.feed.slice(0,5);
+    return items.map(item => ({
+      title: item.title,
+      sentiment: item.overall_sentiment_label,
+      score: parseFloat(item.overall_sentiment_score),
+      time: item.time_published,
+      source: item.source
+    }));
+  }catch(e){
+    console.error('[AV News]', e.message);
+    return [];
+  }
+}
+
+let avCache = {};
+let avLastUpdate = 0;
+
+async function fetchAVData(){
+  const now = Date.now();
+  if(now - avLastUpdate < 5*60*1000) return avCache; // cache 5 min
+
+  console.log('[AlphaVantage] Fetching quotes and sentiment...');
+
+  // Fetch key forex quotes with spread data
+  const [eurusd, xauusd, xagusd] = await Promise.allSettled([
+    fetchAVForexQuote('EUR','USD'),
+    fetchAVForexQuote('XAU','USD'),
+    fetchAVForexQuote('XAG','USD'),
+  ]);
+
+  avCache.quotes = {
+    EURUSD: eurusd.value || null,
+    XAUUSD: xauusd.value || null,
+    XAGUSD: xagusd.value || null,
+  };
+
+  // Fetch news sentiment for Gold, Forex, Crypto
+  await new Promise(r => setTimeout(r, 1000)); // rate limit
+  const [goldNews, forexNews] = await Promise.allSettled([
+    fetchAVNewsSentiment('FOREX:XAUUSD'),
+    fetchAVNewsSentiment('FOREX:EURUSD'),
+  ]);
+
+  avCache.sentiment = {
+    gold: goldNews.value || [],
+    forex: forexNews.value || [],
+  };
+
+  avLastUpdate = now;
+  console.log('[AlphaVantage] Data loaded. EURUSD spread:', avCache.quotes.EURUSD?.spread);
+  return avCache;
+}
+
 // ── TWELVE DATA — REAL CANDLE FETCHER ────────────────────
 const TWELVE_KEY = process.env.TWELVE_KEY || '04869eeca9684386bb55ffdb1a2fc9b0';
 const TWELVE_SYMBOLS = {
@@ -444,6 +525,20 @@ http.createServer(async(req,res)=>{
 
 
 
+
+
+  // Alpha Vantage data endpoint
+  if(pathname==='/api/sentiment'){
+    try{
+      const data = await fetchAVData();
+      res.writeHead(200,{'Content-Type':'application/json'});
+      res.end(JSON.stringify(data));
+    }catch(e){
+      res.writeHead(500);
+      res.end(JSON.stringify({error:e.message}));
+    }
+    return;
+  }
 
   // Real candle analysis endpoint
   if(pathname==='/api/candles'){
