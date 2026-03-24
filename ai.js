@@ -124,12 +124,16 @@ ASSET TYPES AND SL RULES:
 - Crypto trades 24/7 — always active regardless of session
 - For crypto: wider SL is better — BTC can wick $100+ in minutes
 
-SIGNAL RULES — STRICT:
-1. Only generate signal if ALL align: EMA cross + RSI 40-60 + MACD confirms + BB position + clear structure
-2. USE the SuggestedSL and SuggestedTP values provided — they are ATR-based from real swing levels
-3. If confluence is mixed or BIAS is NEUTRAL — return NO SIGNAL
-4. Minimum RR 1:2 always
-5. Quality score must be 75+ to generate
+SIGNAL RULES:
+1. Generate signal if AT LEAST 3 of 5 indicators align (not all 5)
+2. For Gold and Silver — generate if 2 of 5 align (metals trend strongly)
+3. USE the SuggestedSL and SuggestedTP values provided — ATR-based from real swing levels
+4. Minimum RR 1:1.5 (not 1:2 — be more flexible)
+5. Quality score 65+ to generate (not 75+)
+6. During news events — INCREASE signal priority, news creates strong moves
+7. If RSI is extreme (>70 or <30) — still generate if EMA and MACD confirm
+8. NEUTRAL bias can still generate if 2+ other indicators confirm direction
+9. For crypto (BTC/ETH) — generate if trend and momentum align, crypto moves fast
 
 Respond ONLY with valid JSON:
 {
@@ -156,8 +160,10 @@ Respond ONLY with valid JSON:
   "market_condition": "TRENDING"
 }
 
-If NO strong signals:
-{"signals":[],"verdict":"NO SIGNAL","summary":"Waiting for better setup.","avoid":"All pairs","market_condition":"CHOPPY"}`;
+If truly NO signals (all indicators completely against each other):
+{"signals":[],"verdict":"NO SIGNAL","summary":"Waiting for better setup.","avoid":"All pairs","market_condition":"CHOPPY"}
+
+Remember: It is BETTER to generate a moderate signal than to say NO SIGNAL when there is clear directional movement on any pair especially Gold and Silver.`;
 
   try{
     const res=await fetch('/api/groq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'You are a professional forex scalping AI. Always respond with valid JSON only, no markdown.'},{role:'user',content:prompt}]})});
@@ -175,7 +181,7 @@ If NO strong signals:
     }
     renderAISignals(parsed);
     if(typeof window.buildSignalList!=='undefined')window.buildSignalList(parsed.signals);
-    const validSignals=parsed.signals.filter(s=>s.tp&&s.sl&&s.entry&&parseFloat(s.tp)!==parseFloat(s.entry)&&(s.quality_score||0)>=75);
+    const validSignals=parsed.signals.filter(s=>s.tp&&s.sl&&s.entry&&parseFloat(s.tp)!==parseFloat(s.entry)&&(s.quality_score||0)>=65);
     if(typeof alertNewSignals!=='undefined')alertNewSignals(validSignals);
     if(parsed.signals){
       parsed.signals.forEach(s=>{
