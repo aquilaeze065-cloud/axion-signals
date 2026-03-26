@@ -159,6 +159,21 @@ Respond ONLY with valid JSON:
 {
   "signals": [
     {
+      "pair": "XAU/USD",
+      "sym": "XAUUSD",
+      "dir": "buy",
+      "tf": "M15",
+      "entry": 4435.50,
+      "tp": 4452.00,
+      "sl": 4422.00,
+      "quality_score": 82,
+      "rr": "1:1.8",
+      "reason": "EMA9 above EMA21, Gold bullish momentum, ATR-based SL beyond swing low at 4422",
+      "indicators": ["EMA Cross","ATR SL","Swing Low"],
+      "duration": "20-40 min",
+      "session_bias": "Gold bullish"
+    },
+    {
       "pair": "EUR/USD",
       "sym": "EURUSD",
       "dir": "buy",
@@ -166,10 +181,10 @@ Respond ONLY with valid JSON:
       "entry": 1.15573,
       "tp": 1.15789,
       "sl": 1.15242,
-      "quality_score": 85,
-      "rr": "1:2.1",
-      "reason": "EMA9 above EMA21, RSI 54 neutral-bullish, price inside BB, ATR-based SL beyond swing low",
-      "indicators": ["EMA Cross","RSI 54","BB Inside","ATR SL"],
+      "quality_score": 78,
+      "rr": "1:1.8",
+      "reason": "EMA9 above EMA21, RSI 54 rising, ATR-based SL beyond swing low",
+      "indicators": ["EMA Cross","RSI 54","ATR SL"],
       "duration": "20-35 min",
       "session_bias": "London bullish"
     }
