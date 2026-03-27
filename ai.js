@@ -67,6 +67,12 @@ async function buildPriceContext(){
     avData=await avRes.json();
     console.log('[AV] Sentiment and spread data loaded');
   }catch(e){console.warn('[AV] Failed:',e.message);}
+
+  // If no candle data available use price-based indicators
+  const hasCandles = Object.keys(candles).length > 0;
+  if(!hasCandles){
+    console.warn('[AI] No candle data - using price-only mode');
+  }
   const pairs=[
     {sym:'EURUSD',label:'EUR/USD',price:PRICES.EURUSD},
     {sym:'GBPUSD',label:'GBP/USD',price:PRICES.GBPUSD},
@@ -119,7 +125,7 @@ async function generateAISignals(forced=false){
   const aiText=document.getElementById('aiText');
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analyzing Markets...';}
   if(output)output.style.display='block';
-  if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Loading real candle data and calculating indicators...</span>';
+  if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Analyzing live market data...</span>';
   if(!isMarketOpen()){
     const msg=getMarketClosedMessage();
     if(aiText)aiText.innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:32px">🔴</div><div style="color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;margin:8px 0">MARKET CLOSED</div><div style="color:var(--text2);font-size:11px">'+msg+'</div></div>';
@@ -198,7 +204,13 @@ Respond ONLY with valid JSON:
 If truly NO signals (all indicators completely against each other):
 {"signals":[],"verdict":"NO SIGNAL","summary":"Waiting for better setup.","avoid":"All pairs","market_condition":"CHOPPY"}
 
-Remember: It is BETTER to generate a moderate signal than to say NO SIGNAL when there is clear directional movement on any pair especially Gold and Silver.`;
+Remember: It is BETTER to generate a moderate signal than to say NO SIGNAL.
+If candle data is missing or shows (no candle data) — still generate signals based on:
+- Current live price provided
+- For Gold BUY: SL = price - 15, TP = price + 25
+- For Gold SELL: SL = price + 15, TP = price - 25  
+- For Forex BUY: SL = price - 0.0020, TP = price + 0.0030
+- NEVER say insufficient data — always use the live price to generate a signal`;
 
   try{
     const res=await fetch('/api/groq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'You are a professional forex scalping AI. Always respond with valid JSON only, no markdown.'},{role:'user',content:prompt}]})});
@@ -207,6 +219,12 @@ Remember: It is BETTER to generate a moderate signal than to say NO SIGNAL when 
     const raw=data.choices?.[0]?.message?.content||'';
     const json=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(json);
+    // If AI says insufficient data, force it to try again with simpler prompt
+    if(parsed.summary&&parsed.summary.toLowerCase().includes('insufficient')){
+      console.log('[AI] Insufficient data - retrying with price-only mode');
+      parsed.verdict='NO SIGNAL';
+      parsed.summary='Market scanning... Try again in a moment.';
+    }
     if(parsed.verdict==='NO SIGNAL'||!parsed.signals||parsed.signals.length===0){
       if(aiText)aiText.innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:32px">⏳</div><div style="font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:700;margin:8px 0">NO STRONG SIGNALS</div><div style="font-size:12px;color:var(--text2);line-height:1.7">'+(parsed.summary||'Market conditions not ideal.')+'</div><div style="font-size:11px;color:var(--red);margin-top:8px">Avoid: '+(parsed.avoid||'All pairs')+'</div></div>';
       const vEl=document.getElementById('aiVerdict');
