@@ -161,6 +161,13 @@ SIGNAL RULES:
 8. NEUTRAL bias can still generate if 2+ other indicators confirm direction
 9. For crypto (BTC/ETH) — generate if trend and momentum align, crypto moves fast
 
+GENERATE EXACTLY 4-5 SIGNALS per scan. Cover these assets:
+1. XAU/USD (Gold) — ALWAYS include
+2. XAG/USD (Silver) — ALWAYS include  
+3. One major forex (EUR/USD or GBP/USD)
+4. One other forex (USD/JPY or AUD/USD)
+5. BTC/USD or ETH/USD (optional 5th)
+
 Respond ONLY with valid JSON:
 {
   "signals": [
@@ -174,10 +181,25 @@ Respond ONLY with valid JSON:
       "sl": 4422.00,
       "quality_score": 82,
       "rr": "1:1.8",
-      "reason": "EMA9 above EMA21, Gold bullish momentum, ATR-based SL beyond swing low at 4422",
-      "indicators": ["EMA Cross","ATR SL","Swing Low"],
+      "reason": "EMA9 above EMA21, Gold bullish momentum",
+      "indicators": ["EMA Cross","ATR SL"],
       "duration": "20-40 min",
       "session_bias": "Gold bullish"
+    },
+    {
+      "pair": "XAG/USD",
+      "sym": "XAGUSD",
+      "dir": "buy",
+      "tf": "M15",
+      "entry": 33.50,
+      "tp": 33.85,
+      "sl": 33.25,
+      "quality_score": 78,
+      "rr": "1:1.4",
+      "reason": "Silver following Gold bullish momentum",
+      "indicators": ["Gold Correlation","EMA Cross"],
+      "duration": "20-40 min",
+      "session_bias": "Metals bullish"
     },
     {
       "pair": "EUR/USD",
@@ -186,11 +208,26 @@ Respond ONLY with valid JSON:
       "tf": "M15",
       "entry": 1.15573,
       "tp": 1.15789,
-      "sl": 1.15242,
-      "quality_score": 78,
-      "rr": "1:1.8",
-      "reason": "EMA9 above EMA21, RSI 54 rising, ATR-based SL beyond swing low",
-      "indicators": ["EMA Cross","RSI 54","ATR SL"],
+      "sl": 1.15350,
+      "quality_score": 75,
+      "rr": "1:1.6",
+      "reason": "EMA9 above EMA21, RSI 54 rising",
+      "indicators": ["EMA Cross","RSI 54"],
+      "duration": "20-35 min",
+      "session_bias": "London bullish"
+    },
+    {
+      "pair": "GBP/USD",
+      "sym": "GBPUSD",
+      "dir": "buy",
+      "tf": "M15",
+      "entry": 1.29500,
+      "tp": 1.29750,
+      "sl": 1.29300,
+      "quality_score": 72,
+      "rr": "1:1.5",
+      "reason": "EMA cross + RSI momentum",
+      "indicators": ["EMA Cross","RSI"],
       "duration": "20-35 min",
       "session_bias": "London bullish"
     }
@@ -392,7 +429,19 @@ function initAI(){
   updateNewsCountdown();
   setInterval(()=>{updateSessionBadge();updateNewsCountdown();},60000);
   setTimeout(()=>generateAISignals(true),3000);
-  setInterval(()=>{if(isMarketOpen()){generateAISignals(false);}},15*60*1000);
+  // Auto generate every 15 minutes during market hours
+  setInterval(()=>{
+    if(isMarketOpen()){
+      const h=new Date().getUTCHours();
+      // Generate more frequently during London (7-12) and NY (13-17) sessions
+      if((h>=7&&h<12)||(h>=13&&h<17)){
+        generateAISignals(false);
+      } else if(h>=12&&h<13){
+        // London/NY overlap - always generate
+        generateAISignals(false);
+      }
+    }
+  },15*60*1000);
   setInterval(checkSessionAlerts,60000);
   setTimeout(checkSessionAlerts,2000);
   calcPosition();
