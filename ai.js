@@ -5,6 +5,19 @@ function isMarketOpen(){
   if(day===5&&t>=21*60)return false;
   return true;
 }
+
+function isCryptoMarketOpen(){
+  // Crypto trades 24/7 — always open
+  return true;
+}
+
+function isWeekend(){
+  const now=new Date(),day=now.getUTCDay(),h=now.getUTCHours(),m=now.getUTCMinutes(),t=h*60+m;
+  if(day===6)return true;
+  if(day===0&&t<21*60)return true;
+  if(day===5&&t>=21*60)return true;
+  return false;
+}
 function getMarketClosedMessage(){
   const now=new Date(),day=now.getUTCDay();
   const next=new Date(now);
@@ -127,19 +140,28 @@ async function generateAISignals(forced=false){
   if(output)output.style.display='block';
   if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Analyzing live market data...</span>';
   if(!isMarketOpen()){
-    const msg=getMarketClosedMessage();
-    if(aiText)aiText.innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:32px">🔴</div><div style="color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;margin:8px 0">MARKET CLOSED</div><div style="color:var(--text2);font-size:11px">'+msg+'</div></div>';
-    if(btn){btn.disabled=false;btn.innerHTML='✦ Generate AI Signals';}
-    aiRunning=false;return;
+    if(isWeekend()){
+      // Weekend — only generate crypto signals
+      console.log('[AI] Weekend — generating crypto-only signals');
+      if(aiText)aiText.innerHTML='<span style="color:var(--gold);font-size:11px;font-family:var(--mono)">Weekend mode — Crypto signals only (BTC/ETH trade 24/7)</span>';
+    } else {
+      const msg=getMarketClosedMessage();
+      if(aiText)aiText.innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:32px">🔴</div><div style="color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;margin:8px 0">MARKET CLOSED</div><div style="color:var(--text2);font-size:11px">'+msg+'</div></div>';
+      if(btn){btn.disabled=false;btn.innerHTML='✦ Generate AI Signals';}
+      aiRunning=false;return;
+    }
   }
   const session=getSession();
+  const isWknd=isWeekend();
+  const sessionContext=isWknd?'WEEKEND MODE — Forex/Metals markets CLOSED. Generate ONLY BTC/USD and ETH/USD signals. Crypto trades 24/7.':session.name+' ('+session.quality+')';
+
   const prices=await buildPriceContext();
   const prompt=`You are an elite professional forex scalping analyst with access to REAL M15 candle data.
 
 LIVE PRICES + REAL M15 CANDLE ANALYSIS:
 ${prices}
 
-ACTIVE SESSION: ${session.name} (${session.quality})
+ACTIVE SESSION: ${sessionContext}
 
 ASSET TYPES AND SL RULES:
 - Forex pairs: SL minimum 20 pips
