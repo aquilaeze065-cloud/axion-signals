@@ -465,6 +465,151 @@ function savePerformance(data){
   catch(e){console.error('[Perf] Save failed:',e.message);}
 }
 
+
+// ── SERVER-SIDE AUTO SIGNAL ENGINE ───────────────────────
+// Runs every 10 minutes automatically regardless of browser
+const https_req = require('https');
+
+async function generateServerSignals(){
+  try{
+    const prices = await fetchAll();
+    const candles = candleCache;
+
+    const pairs = [
+      {sym:'XAUUSD',label:'XAU/USD Gold',price:prices.XAUUSD},
+      {sym:'XAGUSD',label:'XAG/USD Silver',price:prices.XAGUSD},
+      {sym:'EURUSD',label:'EUR/USD',price:prices.EURUSD},
+      {sym:'GBPUSD',label:'GBP/USD',price:prices.GBPUSD},
+      {sym:'USDJPY',label:'USD/JPY',price:prices.USDJPY},
+      {sym:'BTCUSD',label:'BTC/USD Bitcoin',price:prices.BTCUSD},
+      {sym:'ETHUSD',label:'ETH/USD Ethereum',price:prices.ETHUSD},
+    ];
+
+    const priceContext = pairs.map(p => {
+      const c = candles[p.sym];
+      if(!c) return p.label+': '+p.price;
+      return p.label+': '+p.price
+        +' | EMA9='+c.ema9+' EMA21='+c.ema21+' '+c.emaCross
+        +' | RSI='+c.rsi+' '+c.rsiZone
+        +' | MACD='+c.macdBias
+        +' | ATR='+c.atr
+        +' | SL_BUY='+c.suggestedSL_BUY+' SL_SELL='+c.suggestedSL_SELL
+        +' | TP_BUY='+c.suggestedTP_BUY+' TP_SELL='+c.suggestedTP_SELL
+        +' | BIAS='+c.overallBias;
+    }).join('\n');
+
+    const now = new Date();
+    const day = now.getUTCDay();
+    const h = now.getUTCHours();
+    const isWknd = day===6||(day===0&&h<21)||(day===5&&h>=21);
+
+    const sessionName = h>=7&&h<12?'LONDON SESSION':h>=12&&h<17?'NEW YORK SESSION':h>=17&&h<22?'SYDNEY/TOKYO':'TOKYO SESSION';
+
+    const prompt = `You are an aggressive forex and metals signal generator. ALWAYS generate signals.
+
+LIVE MARKET DATA:
+${priceContext}
+
+SESSION: ${isWknd?'WEEKEND - Generate BTC and ETH signals only':sessionName}
+
+RULES:
+1. ALWAYS generate EXACTLY 4 signals - never less, never say no signal
+2. Weekdays: Gold + Silver + 2 forex pairs
+3. Weekends: 2 BTC signals + 2 ETH signals  
+4. Use EMA cross for direction: EMA9>EMA21=BUY, EMA9<EMA21=SELL
+5. If no candle data use: Gold SL=$15 TP=$25, Silver SL=$0.40 TP=$0.60, Forex SL=20pips TP=30pips
+6. Quality score 65-90
+7. NEVER return empty signals array
+
+Respond ONLY with valid JSON:
+{
+  "signals": [
+    {"pair":"XAU/USD","sym":"XAUUSD","dir":"buy","tf":"M15","entry":4446.00,"tp":4468.00,"sl":4432.00,"quality_score":78,"rr":"1:1.7","reason":"EMA bullish cross, momentum up","indicators":["EMA Cross"],"duration":"20-40 min","session_bias":"Bullish"},
+    {"pair":"XAG/USD","sym":"XAGUSD","dir":"buy","tf":"M15","entry":33.50,"tp":33.85,"sl":33.25,"quality_score":75,"rr":"1:1.4","reason":"Silver following Gold bullish","indicators":["Gold Correlation"],"duration":"20-40 min","session_bias":"Metals bullish"},
+    {"pair":"EUR/USD","sym":"EURUSD","dir":"buy","tf":"M15","entry":1.15500,"tp":1.15750,"sl":1.15300,"quality_score":72,"rr":"1:1.5","reason":"EMA cross bullish","indicators":["EMA Cross"],"duration":"20-35 min","session_bias":"London"},
+    {"pair":"GBP/USD","sym":"GBPUSD","dir":"buy","tf":"M15","entry":1.29500,"tp":1.29800,"sl":1.29250,"quality_score":70,"rr":"1:1.4","reason":"Momentum bullish","indicators":["EMA"],"duration":"20-35 min","session_bias":"London"}
+  ],
+  "verdict":"STRONG",
+  "summary":"Active signals across metals and forex.",
+  "avoid":"Pairs with no momentum",
+  "market_condition":"TRENDING"
+}`;
+
+    // Call Groq API from server
+    const groqBody = JSON.stringify({
+      model:'llama-3.3-70b-versatile',
+      messages:[
+        {role:'system',content:'You are a forex signal generator. Always respond with valid JSON only. Always generate exactly 4 signals. Never refuse or say insufficient data.'},
+        {role:'user',content:prompt}
+      ],
+      max_tokens:1500,
+      temperature:0.3
+    });
+
+    const groqResult = await new Promise((resolve,reject)=>{
+      const req = https_req.request({
+        hostname:'api.groq.com',
+        path:'/openai/v1/chat/completions',
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+process.env.GROQ_API_KEY,
+          'Content-Length':Buffer.byteLength(groqBody)
+        },
+        timeout:30000
+      },(res)=>{
+        let d='';
+        res.on('data',c=>d+=c);
+        res.on('end',()=>{try{resolve(JSON.parse(d));}catch(e){reject(e);}});
+      });
+      req.on('error',reject);
+      req.write(groqBody);
+      req.end();
+    });
+
+    const raw = groqResult.choices?.[0]?.message?.content||'';
+    const json = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(json);
+
+    if(!parsed.signals||parsed.signals.length===0){
+      console.log('[Server AI] No signals returned');
+      return;
+    }
+
+    console.log('[Server AI] Generated',parsed.signals.length,'signals. Verdict:',parsed.verdict);
+
+    // Send each signal to Telegram
+    for(const signal of parsed.signals){
+      if(signal.tp&&signal.sl&&signal.entry&&
+         parseFloat(signal.tp)!==parseFloat(signal.entry)&&
+         parseFloat(signal.sl)!==parseFloat(signal.entry)){
+        await sendTelegram(signal);
+        await new Promise(r=>setTimeout(r,800)); // rate limit
+      }
+    }
+
+    // Save to performance tracker
+    const perf = loadPerformance();
+    parsed.signals.forEach(s=>{
+      perf.signals.push({
+        id:Date.now()+Math.random(),
+        pair:s.pair,sym:s.sym,dir:s.dir,
+        entry:s.entry,tp:s.tp,sl:s.sl,rr:s.rr,
+        quality:s.quality_score||75,
+        result:'pending',pips:null,
+        date:new Date().toISOString().split('T')[0],
+        reason:s.reason||''
+      });
+    });
+    savePerformance(perf);
+
+    console.log('[Server AI] Signals sent to Telegram and saved');
+
+  }catch(e){
+    console.error('[Server AI] Error:',e.message);
+  }
+}
+
 http.createServer(async(req,res)=>{
   const pathname=url.parse(req.url).pathname;
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -687,6 +832,18 @@ http.createServer(async(req,res)=>{
   });
 }).listen(PORT,async()=>{
   console.log('\n  ForexAI Pro  →  http://localhost:'+PORT);
+  console.log('  Auto signals → Every 10 minutes server-side\n');
+  // Start server-side signal engine
+  setTimeout(async()=>{
+    console.log('[Server AI] Starting auto signal engine...');
+    await fetchAllCandles().catch(e=>console.error('[Candles]',e.message));
+    await generateServerSignals();
+    // Run every 10 minutes automatically
+    setInterval(async()=>{
+      console.log('[Server AI] Auto scanning...');
+      await generateServerSignals();
+    }, 10*60*1000);
+  }, 10000); // Wait 10 seconds after startup
   console.log('  Prices test  →  http://localhost:'+PORT+'/api/test');
   console.log('  Claude proxy →  http://localhost:'+PORT+'/api/claude\n');
   await fetchAll();
