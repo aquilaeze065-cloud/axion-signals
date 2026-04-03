@@ -3,6 +3,13 @@ const http=require('http'),https=require('https'),fs=require('fs'),path=require(
 const PORT=8080,DIR=__dirname;
 const MIME={'.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.ico':'image/x-icon'};
 let cache={prices:null,lastUpdate:0};
+const serverLogs=[];
+function addLog(msg){
+  const entry='['+new Date().toISOString().slice(11,19)+'] '+msg;
+  console.log(entry);
+  serverLogs.push(entry);
+  if(serverLogs.length>100)serverLogs.shift();
+}
 const TROY=31.1035;
 function fixMetal(v,min,max){const n=parseFloat(v);if(n>=min&&n<=max)return n;const c=n*TROY;if(c>=min&&c<=max)return c;return null;}
 function fetchJSON(u){return new Promise((res,rej)=>{const r=https.get(u,{headers:{'User-Agent':'Mozilla/5.0'},timeout:8000},(rs)=>{let d='';rs.on('data',c=>d+=c);rs.on('end',()=>{try{res(JSON.parse(d))}catch(e){rej(new Error('BadJSON:'+d.slice(0,60)))}});});r.on('error',rej);r.on('timeout',()=>{r.destroy();rej(new Error('Timeout'));});});}
@@ -11,7 +18,7 @@ async function fetchAll(){
   const now=Date.now();
   if(cache.prices&&now-cache.lastUpdate<15000)return cache.prices;
   const p={};
-  try{const d=await fetchJSON('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,CAD,CHF,NZD');const r=d.rates;p.EURUSD=(1/r.EUR).toFixed(5);p.GBPUSD=(1/r.GBP).toFixed(5);p.USDJPY=r.JPY.toFixed(3);p.AUDUSD=(1/r.AUD).toFixed(5);p.USDCAD=r.CAD.toFixed(5);p.USDCHF=r.CHF.toFixed(5);p.NZDUSD=(1/r.NZD).toFixed(5);p.EURGBP=(r.GBP/r.EUR).toFixed(5);console.log('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);}catch(e){console.error('[Forex]',e.message);if(cache.prices)['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{if(cache.prices[k])p[k]=cache.prices[k];});}
+  try{const d=await fetchJSON('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,CAD,CHF,NZD');const r=d.rates;p.EURUSD=(1/r.EUR).toFixed(5);p.GBPUSD=(1/r.GBP).toFixed(5);p.USDJPY=r.JPY.toFixed(3);p.AUDUSD=(1/r.AUD).toFixed(5);p.USDCAD=r.CAD.toFixed(5);p.USDCHF=r.CHF.toFixed(5);p.NZDUSD=(1/r.NZD).toFixed(5);p.EURGBP=(r.GBP/r.EUR).toFixed(5);addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);}catch(e){console.error('[Forex]',e.message);if(cache.prices)['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{if(cache.prices[k])p[k]=cache.prices[k];});}
   try{
     const gd=await fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
     if(gd&&gd[0]&&gd[0].spreadProfilePrices){
@@ -306,7 +313,7 @@ async function fetchAllCandles(){
   const now = Date.now();
   if(now - candleLastUpdate < 14 * 60 * 1000) return candleCache; // cache 14 min
   
-  console.log('[Candles] Fetching real M15 candle data...');
+  addLog('[Candles] Fetching real M15 candle data...');
   // Only fetch 6 pairs to stay under Twelve Data free tier (8 credits/min)
   const pairs = ['EURUSD','GBPUSD','XAUUSD','XAGUSD','BTCUSD','ETHUSD'];
   
@@ -314,7 +321,7 @@ async function fetchAllCandles(){
     const candles = await fetchCandles(sym);
     if(candles) {
       candleCache[sym] = candles;
-      console.log('[Candles] ' + sym + ': ' + candles.length + ' candles loaded');
+      addLog('[Candles] ' + sym + ': ' + candles.length + ' candles loaded');
     }
     await new Promise(r => setTimeout(r, 12000)); // 12s delay = 5 req/min safely // rate limit
   }
@@ -573,11 +580,11 @@ Respond ONLY with valid JSON:
     const parsed = JSON.parse(json);
 
     if(!parsed.signals||parsed.signals.length===0){
-      console.log('[Server AI] No signals returned');
+      addLog('[Server AI] No signals returned');
       return;
     }
 
-    console.log('[Server AI] Generated',parsed.signals.length,'signals. Verdict:',parsed.verdict);
+    addLog('[Server AI] Generated',parsed.signals.length,'signals. Verdict:',parsed.verdict);
 
     // Send each signal to Telegram
     for(const signal of parsed.signals){
@@ -600,7 +607,7 @@ Respond ONLY with valid JSON:
         existing.id > thirtyMinsAgo
       );
       if(isDuplicate){
-        console.log('[Server AI] Skipping duplicate signal:',s.pair,s.dir);
+        addLog('[Server AI] Skipping duplicate signal:',s.pair,s.dir);
         return;
       }
       perf.signals.push({
@@ -615,10 +622,10 @@ Respond ONLY with valid JSON:
     });
     savePerformance(perf);
 
-    console.log('[Server AI] Signals sent to Telegram and saved');
+    addLog('[Server AI] Signals sent to Telegram and saved');
 
   }catch(e){
-    console.error('[Server AI] Error:',e.message);
+    addLog('[Server AI] ERROR: Error:',e.message);
   }
 }
 
@@ -683,6 +690,13 @@ http.createServer(async(req,res)=>{
 
 
 
+
+  // Server logs endpoint
+  if(pathname==='/api/logs'){
+    res.writeHead(200,{'Content-Type':'application/json'});
+    res.end(JSON.stringify({logs:serverLogs.slice(-50)}));
+    return;
+  }
 
   // Alpha Vantage data endpoint
   if(pathname==='/api/sentiment'){
@@ -847,12 +861,12 @@ http.createServer(async(req,res)=>{
   console.log('  Auto signals → Every 10 minutes server-side\n');
   // Start server-side signal engine
   setTimeout(async()=>{
-    console.log('[Server AI] Starting auto signal engine...');
+    addLog('[Server AI] Starting auto signal engine...');
     await fetchAllCandles().catch(e=>console.error('[Candles]',e.message));
     await generateServerSignals();
     // Run every 10 minutes automatically
     setInterval(async()=>{
-      console.log('[Server AI] Auto scanning...');
+      addLog('[Server AI] Auto scanning...');
       await generateServerSignals();
     }, 10*60*1000);
   }, 10000); // Wait 10 seconds after startup
