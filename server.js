@@ -762,51 +762,81 @@ async function fetchMyfxbookSentiment(){
 
 // ── COMBINED SENTIMENT ANALYSIS ───────────────────────────
 async function getCombinedSentiment(){
-  const [myfxbook, av] = await Promise.allSettled([
-    fetchMyfxbookSentiment(),
-    fetchAVData()
-  ]);
-
-  const mfx = myfxbook.value || {};
-  const avd = av.value || {};
+  // Use Alpha Vantage only — more reliable
+  let avd = {};
+  try{
+    avd = await fetchAVData();
+  }catch(e){
+    addLog('[Sentiment] AV fetch failed: '+e.message);
+  }
 
   const pairs = ['XAUUSD','XAGUSD','EURUSD','GBPUSD','USDJPY','AUDUSD','BTCUSD','ETHUSD'];
   const combined = {};
 
+  // Fetch specific news for each asset type
+  const avNewsGold   = avd.sentiment?.gold   || [];
+  const avNewsForex  = avd.sentiment?.forex  || [];
+
+  // Fetch additional AV sentiment for metals and crypto
+  let goldSentiment = [], forexSentiment = [], cryptoSentiment = [];
+  try{
+    const gRes = await fetchJSON('https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=gold&limit=10&apikey='+AV_KEY);
+    if(gRes.feed) goldSentiment = gRes.feed.slice(0,5).map(n=>({
+      title:n.title,
+      sentiment:n.overall_sentiment_label,
+      score:parseFloat(n.overall_sentiment_score||0)
+    }));
+  }catch(e){}
+
+  try{
+    const fRes = await fetchJSON('https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=forex&limit=10&apikey='+AV_KEY);
+    if(fRes.feed) forexSentiment = fRes.feed.slice(0,5).map(n=>({
+      title:n.title,
+      sentiment:n.overall_sentiment_label,
+      score:parseFloat(n.overall_sentiment_score||0)
+    }));
+  }catch(e){}
+
+  try{
+    const cRes = await fetchJSON('https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=blockchain&limit=10&apikey='+AV_KEY);
+    if(cRes.feed) cryptoSentiment = cRes.feed.slice(0,5).map(n=>({
+      title:n.title,
+      sentiment:n.overall_sentiment_label,
+      score:parseFloat(n.overall_sentiment_score||0)
+    }));
+  }catch(e){}
+
+  function analyzeSentiment(newsItems){
+    if(!newsItems||!newsItems.length) return {bias:'NEUTRAL',score:0,bullish:0,bearish:0,strength:'WEAK'};
+    const bullish = newsItems.filter(n=>n.sentiment==='Bullish'||n.sentiment==='Somewhat-Bullish').length;
+    const bearish = newsItems.filter(n=>n.sentiment==='Bearish'||n.sentiment==='Somewhat-Bearish').length;
+    const avgScore = newsItems.reduce((a,b)=>a+b.score,0)/newsItems.length;
+    const bias = bullish>bearish?'BULLISH':bearish>bullish?'BEARISH':'NEUTRAL';
+    const strength = Math.abs(bullish-bearish)>=3?'STRONG':Math.abs(bullish-bearish)>=2?'MODERATE':'WEAK';
+    return {bias, score:avgScore.toFixed(3), bullish, bearish, strength,
+      summary: bias==='BULLISH'?bullish+' bullish / '+bearish+' bearish news — market optimistic':
+                bias==='BEARISH'?bearish+' bearish / '+bullish+' bullish news — market pessimistic':
+                'Mixed news — no clear direction'};
+  }
+
   pairs.forEach(sym => {
-    const mfxData = mfx[sym] || mfx[sym.replace('USD','/USD')] || null;
-    const avNews  = avd.sentiment?.gold || avd.sentiment?.forex || [];
-
-    // Myfxbook contrarian signal
-    const contrarian  = mfxData?.contrarian || 'NEUTRAL';
-    const extreme     = mfxData?.extreme || false;
-    const buyPct      = mfxData?.buyPct || 50;
-    const sellPct     = mfxData?.sellPct || 50;
-
-    // Alpha Vantage news sentiment
-    const newsItems   = avNews.slice(0,3);
-    const bullishNews = newsItems.filter(n=>n.sentiment==='Bullish'||n.sentiment==='Somewhat-Bullish').length;
-    const bearishNews = newsItems.filter(n=>n.sentiment==='Bearish'||n.sentiment==='Somewhat-Bearish').length;
-    const newsBias    = bullishNews>bearishNews?'BULLISH':bearishNews>bullishNews?'BEARISH':'NEUTRAL';
+    const isMetal  = sym==='XAUUSD'||sym==='XAGUSD';
+    const isCrypto = sym==='BTCUSD'||sym==='ETHUSD';
+    const news = isMetal ? analyzeSentiment(goldSentiment) :
+                 isCrypto? analyzeSentiment(cryptoSentiment) :
+                           analyzeSentiment(forexSentiment);
 
     combined[sym] = {
-      myfxbook: mfxData ? {
-        buyPct, sellPct, contrarian, extreme,
-        note: mfxData.note
-      } : null,
-      news: { bullish: bullishNews, bearish: bearishNews, bias: newsBias },
-      // Final recommendation — use AV news if Myfxbook unavailable
-      recommendation: contrarian!=='NEUTRAL' && extreme ? contrarian :
-                      contrarian!=='NEUTRAL' && newsBias===contrarian ? contrarian :
-                      newsBias!=='NEUTRAL' ? newsBias :
-                      contrarian!=='NEUTRAL' ? contrarian : 'NEUTRAL',
-      strength: extreme?'STRONG':
-                contrarian!=='NEUTRAL'&&newsBias===contrarian?'STRONG':
-                contrarian!=='NEUTRAL'?'MODERATE':
-                newsBias!=='NEUTRAL'?'MODERATE':'WEAK'
+      news,
+      recommendation: news.bias,
+      strength: news.strength,
+      summary: news.summary
     };
   });
 
+  addLog('[Sentiment] Gold:'+combined.XAUUSD?.news?.bias+
+         ' Forex:'+combined.EURUSD?.news?.bias+
+         ' Crypto:'+combined.BTCUSD?.news?.bias);
   return combined;
 }
 
