@@ -18,6 +18,17 @@ function isWeekend(){
   if(day===5&&t>=21*60)return true;
   return false;
 }
+
+const FOREX_HOLIDAYS=['2026-01-01','2026-04-03','2026-04-06','2026-12-25','2026-12-26','2025-04-18','2025-04-21','2025-12-25','2025-12-26','2027-01-01','2027-03-26','2027-03-29'];
+function isForexHoliday(){
+  const today=new Date().toISOString().split('T')[0];
+  return FOREX_HOLIDAYS.includes(today);
+}
+function getHolidayName(){
+  const today=new Date().toISOString().split('T')[0];
+  const names={'2026-04-03':'Good Friday','2026-04-06':'Easter Monday','2026-12-25':'Christmas Day','2026-12-26':'Boxing Day','2026-01-01':'New Year Day'};
+  return names[today]||'Market Holiday';
+}
 function getMarketClosedMessage(){
   const now=new Date(),day=now.getUTCDay();
   const next=new Date(now);
@@ -139,11 +150,13 @@ async function generateAISignals(forced=false){
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analyzing Markets...';}
   if(output)output.style.display='block';
   if(aiText)aiText.innerHTML='<span style="color:var(--text2);font-size:11px">Analyzing live market data...</span>';
-  if(!isMarketOpen()){
-    if(isWeekend()){
-      // Weekend — only generate crypto signals
-      console.log('[AI] Weekend — generating crypto-only signals');
-      if(aiText)aiText.innerHTML='<span style="color:var(--gold);font-size:11px;font-family:var(--mono)">Weekend mode — Crypto signals only (BTC/ETH trade 24/7)</span>';
+  if(isForexHoliday()||!isMarketOpen()){
+    const holiday=isForexHoliday();
+    if(holiday||isWeekend()){
+      const label=holiday?getHolidayName()+' — Forex & Metals Closed':'Weekend';
+      console.log('[AI]',label,'— generating crypto-only signals');
+      if(aiText)aiText.innerHTML='<span style="color:var(--gold);font-size:11px;font-family:var(--mono)">'+label+' — Crypto signals only (BTC/ETH trade 24/7)</span>';
+      // Continue to generate crypto signals only
     } else {
       const msg=getMarketClosedMessage();
       if(aiText)aiText.innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:32px">🔴</div><div style="color:var(--red);font-family:var(--mono);font-size:12px;font-weight:700;margin:8px 0">MARKET CLOSED</div><div style="color:var(--text2);font-size:11px">'+msg+'</div></div>';

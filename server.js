@@ -480,6 +480,17 @@ const https_req = require('https');
 
 async function generateServerSignals(){
   try{
+    // Check market holiday
+    if(isMarketHoliday()){
+      addLog('[Server AI] Market holiday: '+getHolidayName()+' — generating crypto signals only');
+      // On holidays only generate BTC/ETH signals
+      const prices = await fetchAll();
+      const cryptoPrompt = `Generate exactly 2 signals for BTC/USD and 2 for ETH/USD. Market is closed today (${getHolidayName()}). Crypto trades 24/7.
+Current prices: BTC/USD=${prices.BTCUSD}, ETH/USD=${prices.ETHUSD}
+Respond with valid JSON with 4 crypto signals only.`;
+      // Still run but crypto only mode
+    }
+
     const prices = await fetchAll();
     const candles = candleCache;
 
@@ -510,8 +521,15 @@ async function generateServerSignals(){
     const day = now.getUTCDay();
     const h = now.getUTCHours();
     const isWknd = day===6||(day===0&&h<21)||(day===5&&h>=21);
+    const isHoliday = isMarketHoliday();
+    const holidayName = getHolidayName();
 
-    const sessionName = h>=7&&h<12?'LONDON SESSION':h>=12&&h<17?'NEW YORK SESSION':h>=17&&h<22?'SYDNEY/TOKYO':'TOKYO SESSION';
+    const sessionName = isHoliday
+      ? holidayName+' HOLIDAY — Crypto Only'
+      : h>=7&&h<12?'LONDON SESSION'
+      : h>=12&&h<17?'NEW YORK SESSION'
+      : h>=17&&h<22?'SYDNEY SESSION'
+      : 'TOKYO SESSION';
 
     const prompt = `You are an aggressive forex and metals signal generator. ALWAYS generate signals.
 
@@ -627,6 +645,54 @@ Respond ONLY with valid JSON:
   }catch(e){
     addLog('[Server AI] ERROR: Error:',e.message);
   }
+}
+
+
+// ── FOREX MARKET HOLIDAY CALENDAR ────────────────────────
+const MARKET_HOLIDAYS = [
+  // 2025
+  '2025-01-01', // New Year
+  '2025-04-18', // Good Friday
+  '2025-04-21', // Easter Monday
+  '2025-12-25', // Christmas
+  '2025-12-26', // Boxing Day
+  // 2026
+  '2026-01-01', // New Year
+  '2026-04-03', // Good Friday  <-- TODAY
+  '2026-04-06', // Easter Monday
+  '2026-12-25', // Christmas
+  '2026-12-26', // Boxing Day
+  // 2027
+  '2027-01-01',
+  '2027-03-26', // Good Friday
+  '2027-03-29', // Easter Monday
+  '2027-12-24',
+  '2027-12-25',
+];
+
+function isMarketHoliday(){
+  const today = new Date().toISOString().split('T')[0];
+  return MARKET_HOLIDAYS.includes(today);
+}
+
+function isCryptoOnly(){
+  // Crypto trades even on holidays
+  const today = new Date().toISOString().split('T')[0];
+  return MARKET_HOLIDAYS.includes(today);
+}
+
+function getHolidayName(){
+  const today = new Date().toISOString().split('T')[0];
+  const names = {
+    '2026-04-03': 'Good Friday',
+    '2026-04-06': 'Easter Monday',
+    '2026-12-25': 'Christmas Day',
+    '2026-12-26': 'Boxing Day',
+    '2026-01-01': 'New Year Day',
+    '2025-04-18': 'Good Friday',
+    '2025-12-25': 'Christmas Day',
+  };
+  return names[today] || 'Market Holiday';
 }
 
 http.createServer(async(req,res)=>{
