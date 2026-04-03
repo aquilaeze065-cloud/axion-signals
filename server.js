@@ -307,7 +307,8 @@ async function fetchAllCandles(){
   if(now - candleLastUpdate < 14 * 60 * 1000) return candleCache; // cache 14 min
   
   console.log('[Candles] Fetching real M15 candle data...');
-  const pairs = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','AUDUSD','BTCUSD','ETHUSD'];
+  // Only fetch 6 pairs to stay under Twelve Data free tier (8 credits/min)
+  const pairs = ['EURUSD','GBPUSD','XAUUSD','XAGUSD','BTCUSD','ETHUSD'];
   
   for(const sym of pairs){
     const candles = await fetchCandles(sym);
@@ -315,7 +316,7 @@ async function fetchAllCandles(){
       candleCache[sym] = candles;
       console.log('[Candles] ' + sym + ': ' + candles.length + ' candles loaded');
     }
-    await new Promise(r => setTimeout(r, 500)); // rate limit
+    await new Promise(r => setTimeout(r, 12000)); // 12s delay = 5 req/min safely // rate limit
   }
   
   candleLastUpdate = now;
@@ -588,9 +589,20 @@ Respond ONLY with valid JSON:
       }
     }
 
-    // Save to performance tracker
+    // Save to performance tracker — avoid duplicates within 30 min
     const perf = loadPerformance();
+    const thirtyMinsAgo = Date.now() - 30*60*1000;
     parsed.signals.forEach(s=>{
+      // Check if same pair+dir already saved in last 30 min
+      const isDuplicate = perf.signals.some(existing=>
+        existing.pair===s.pair &&
+        existing.dir===s.dir &&
+        existing.id > thirtyMinsAgo
+      );
+      if(isDuplicate){
+        console.log('[Server AI] Skipping duplicate signal:',s.pair,s.dir);
+        return;
+      }
       perf.signals.push({
         id:Date.now()+Math.random(),
         pair:s.pair,sym:s.sym,dir:s.dir,
