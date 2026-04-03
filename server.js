@@ -504,6 +504,10 @@ Respond with valid JSON with 4 crypto signals only.`;
       {sym:'ETHUSD',label:'ETH/USD Ethereum',price:prices.ETHUSD},
     ];
 
+    // Get combined sentiment
+    const sentiment = await getCombinedSentiment();
+    addLog('[Server AI] Sentiment loaded: '+JSON.stringify(Object.keys(sentiment)));
+
     const priceContext = pairs.map(p => {
       const c = candles[p.sym];
       if(!c) return p.label+': '+p.price;
@@ -695,6 +699,100 @@ function getHolidayName(){
   return names[today] || 'Market Holiday';
 }
 
+
+// ── MYFXBOOK SENTIMENT ────────────────────────────────────
+const MYFXBOOK_SESSION = 'DSL07vu4QxHWErTIAFrH40';
+let myfxbookCache = {};
+let myfxbookLastUpdate = 0;
+
+async function fetchMyfxbookSentiment(){
+  const now = Date.now();
+  if(now - myfxbookLastUpdate < 15*60*1000) return myfxbookCache;
+  try{
+    const url = 'https://www.myfxbook.com/api/get-community-outlook.json?session='+MYFXBOOK_SESSION;
+    const data = await fetchJSON(url);
+    if(!data||data.error) throw new Error('Myfxbook error: '+(data?.message||'unknown'));
+    const sentiment = {};
+    if(data.symbols){
+      data.symbols.forEach(sym=>{
+        const buyPct  = parseFloat(sym.buyPercentage||50);
+        const sellPct = parseFloat(sym.sellPercentage||50);
+        const name    = sym.name.replace('/','');
+        // Contrarian logic: if >65% buyers = bearish signal, if >65% sellers = bullish signal
+        let contrarian = 'NEUTRAL';
+        let extreme    = false;
+        if(buyPct >= 65){ contrarian='SELL'; extreme=buyPct>=75; }
+        else if(sellPct >= 65){ contrarian='BUY'; extreme=sellPct>=75; }
+        sentiment[name] = {
+          buyPct, sellPct,
+          retailBias: buyPct>sellPct?'LONG':'SHORT',
+          contrarian,
+          extreme,
+          confidence: extreme?'HIGH':'MODERATE',
+          note: buyPct>=65
+            ? `${buyPct}% retail LONG → Smart money likely SHORT`
+            : sellPct>=65
+            ? `${sellPct}% retail SHORT → Smart money likely LONG`
+            : `Sentiment balanced ${buyPct}%/${sellPct}% — no strong contrarian signal`
+        };
+      });
+    }
+    myfxbookCache = sentiment;
+    myfxbookLastUpdate = now;
+    addLog('[Myfxbook] Sentiment loaded for '+Object.keys(sentiment).length+' pairs');
+    return sentiment;
+  }catch(e){
+    addLog('[Myfxbook] Failed: '+e.message);
+    return myfxbookCache;
+  }
+}
+
+// ── COMBINED SENTIMENT ANALYSIS ───────────────────────────
+async function getCombinedSentiment(){
+  const [myfxbook, av] = await Promise.allSettled([
+    fetchMyfxbookSentiment(),
+    fetchAVData()
+  ]);
+
+  const mfx = myfxbook.value || {};
+  const avd = av.value || {};
+
+  const pairs = ['XAUUSD','XAGUSD','EURUSD','GBPUSD','USDJPY','AUDUSD','BTCUSD','ETHUSD'];
+  const combined = {};
+
+  pairs.forEach(sym => {
+    const mfxData = mfx[sym] || mfx[sym.replace('USD','/USD')] || null;
+    const avNews  = avd.sentiment?.gold || avd.sentiment?.forex || [];
+
+    // Myfxbook contrarian signal
+    const contrarian  = mfxData?.contrarian || 'NEUTRAL';
+    const extreme     = mfxData?.extreme || false;
+    const buyPct      = mfxData?.buyPct || 50;
+    const sellPct     = mfxData?.sellPct || 50;
+
+    // Alpha Vantage news sentiment
+    const newsItems   = avNews.slice(0,3);
+    const bullishNews = newsItems.filter(n=>n.sentiment==='Bullish'||n.sentiment==='Somewhat-Bullish').length;
+    const bearishNews = newsItems.filter(n=>n.sentiment==='Bearish'||n.sentiment==='Somewhat-Bearish').length;
+    const newsBias    = bullishNews>bearishNews?'BULLISH':bearishNews>bullishNews?'BEARISH':'NEUTRAL';
+
+    combined[sym] = {
+      myfxbook: mfxData ? {
+        buyPct, sellPct, contrarian, extreme,
+        note: mfxData.note
+      } : null,
+      news: { bullish: bullishNews, bearish: bearishNews, bias: newsBias },
+      // Final recommendation
+      recommendation: contrarian!=='NEUTRAL' && extreme ? contrarian :
+                      contrarian!=='NEUTRAL' && newsBias===contrarian ? contrarian :
+                      newsBias!=='NEUTRAL' ? newsBias : 'NEUTRAL',
+      strength: extreme?'STRONG':contrarian!=='NEUTRAL'?'MODERATE':'WEAK'
+    };
+  });
+
+  return combined;
+}
+
 http.createServer(async(req,res)=>{
   const pathname=url.parse(req.url).pathname;
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -756,6 +854,19 @@ http.createServer(async(req,res)=>{
 
 
 
+
+  // Combined sentiment endpoint
+  if(pathname==='/api/market-sentiment'){
+    try{
+      const sentiment = await getCombinedSentiment();
+      res.writeHead(200,{'Content-Type':'application/json'});
+      res.end(JSON.stringify(sentiment));
+    }catch(e){
+      res.writeHead(500);
+      res.end(JSON.stringify({error:e.message}));
+    }
+    return;
+  }
 
   // Server logs endpoint
   if(pathname==='/api/logs'){
