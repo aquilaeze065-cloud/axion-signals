@@ -211,6 +211,7 @@ async function fetchAVForexQuote(fromSym, toSym){
 }
 
 async function fetchAVNewsSentiment(tickers){
+  // Also try without tickers for general market news
   try{
     const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${tickers}&limit=10&apikey=${AV_KEY}`;
     const data = await fetchJSON(url);
@@ -702,14 +703,26 @@ function getHolidayName(){
 
 // ── MYFXBOOK SENTIMENT ────────────────────────────────────
 const MYFXBOOK_SESSION = 'DSL07vu4QxHWErTIAFrH40';
+let MYFXBOOK_SESSION_LIVE = process.env.MYFXBOOK_SESSION || MYFXBOOK_SESSION;
 let myfxbookCache = {};
 let myfxbookLastUpdate = 0;
 
 async function fetchMyfxbookSentiment(){
+  // Try to refresh session automatically
+  try{
+    const loginUrl = 'https://www.myfxbook.com/api/login.json?email=aquilaeze065@gmail.com&password=chukwuemeka1988';
+    const loginData = await fetchJSON(loginUrl);
+    if(!loginData.error && loginData.session){
+      MYFXBOOK_SESSION_LIVE = loginData.session;
+      addLog('[Myfxbook] Session refreshed: '+loginData.session.slice(0,8)+'...');
+    }
+  }catch(e){
+    addLog('[Myfxbook] Auto-login failed: '+e.message);
+  }
   const now = Date.now();
   if(now - myfxbookLastUpdate < 15*60*1000) return myfxbookCache;
   try{
-    const url = 'https://www.myfxbook.com/api/get-community-outlook.json?session='+MYFXBOOK_SESSION;
+    const url = 'https://www.myfxbook.com/api/get-community-outlook.json?session='+MYFXBOOK_SESSION_LIVE;
     const data = await fetchJSON(url);
     if(!data||data.error) throw new Error('Myfxbook error: '+(data?.message||'unknown'));
     const sentiment = {};
@@ -782,11 +795,15 @@ async function getCombinedSentiment(){
         note: mfxData.note
       } : null,
       news: { bullish: bullishNews, bearish: bearishNews, bias: newsBias },
-      // Final recommendation
+      // Final recommendation — use AV news if Myfxbook unavailable
       recommendation: contrarian!=='NEUTRAL' && extreme ? contrarian :
                       contrarian!=='NEUTRAL' && newsBias===contrarian ? contrarian :
-                      newsBias!=='NEUTRAL' ? newsBias : 'NEUTRAL',
-      strength: extreme?'STRONG':contrarian!=='NEUTRAL'?'MODERATE':'WEAK'
+                      newsBias!=='NEUTRAL' ? newsBias :
+                      contrarian!=='NEUTRAL' ? contrarian : 'NEUTRAL',
+      strength: extreme?'STRONG':
+                contrarian!=='NEUTRAL'&&newsBias===contrarian?'STRONG':
+                contrarian!=='NEUTRAL'?'MODERATE':
+                newsBias!=='NEUTRAL'?'MODERATE':'WEAK'
     };
   });
 
