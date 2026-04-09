@@ -576,7 +576,7 @@ Respond ONLY with valid JSON:
 
     // Call Groq API from server
     const groqBody = JSON.stringify({
-      model:'llama3-8b-8192',
+      model:'llama-3.3-70b-versatile',
       messages:[
         {role:'system',content:'You are a forex signal generator. Always respond with valid JSON only. Always generate exactly 4 signals. Never refuse or say insufficient data.'},
         {role:'user',content:prompt}
@@ -1063,7 +1063,7 @@ http.createServer(async(req,res)=>{
     req.on('end',async()=>{
       try{
         const parsed=JSON.parse(body);
-        const groqBody=JSON.stringify({model:'llama3-8b-8192',messages:parsed.messages,max_tokens:1200,temperature:0.3});
+        const groqBody=JSON.stringify({model:'llama-3.3-70b-versatile',messages:parsed.messages,max_tokens:1200,temperature:0.3});
         const https=require('https');
         const result=await new Promise((resolve,reject)=>{
           const r=https.request({hostname:'api.groq.com',path:'/openai/v1/chat/completions',method:'POST',
