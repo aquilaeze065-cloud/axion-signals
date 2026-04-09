@@ -529,12 +529,20 @@ Respond with valid JSON with 4 crypto signals only.`;
     const isHoliday = isMarketHoliday();
     const holidayName = getHolidayName();
 
+    // Nigeria time = UTC+1
+    const nigeriaHour = (h + 1) % 24;
+    const inTradingWindow = nigeriaHour >= 8 && nigeriaHour <= 17; // 8AM-5PM Nigeria
     const sessionName = isHoliday
       ? holidayName+' HOLIDAY — Crypto Only'
-      : h>=7&&h<12?'LONDON SESSION'
-      : h>=12&&h<17?'NEW YORK SESSION'
-      : h>=17&&h<22?'SYDNEY SESSION'
-      : 'TOKYO SESSION';
+      : h>=7&&h<12?'LONDON SESSION (OPTIMAL — 8AM-1PM Nigeria)'
+      : h>=12&&h<16?'NEW YORK SESSION (GOOD — 1PM-5PM Nigeria)'
+      : h>=16&&h<22?'NY CLOSE / SYDNEY (LOW QUALITY — avoid metals)'
+      : 'TOKYO SESSION (LOW QUALITY — avoid metals)';
+
+    // Skip low quality sessions for metals
+    if(!inTradingWindow && !isWknd && !isHoliday){
+      addLog('[Server AI] Outside Nigeria trading window ('+nigeriaHour+'h) — skipping metals, forex only crypto');
+    }
 
     const prompt = `You are an aggressive forex and metals signal generator. ALWAYS generate signals.
 
