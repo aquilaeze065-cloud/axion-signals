@@ -3,58 +3,95 @@ const TELEGRAM_CHAT  = '5695936404';
 const TELEGRAM_CHANNEL = '-1003865341821';
 
 function buildTelegramMessage(signal){
-  const dir = signal.dir==='buy'?'🟢 LONG (BUY)':'🔴 SHORT (SELL)';
-  const dirEmoji = signal.dir==='buy'?'📈':'📉';
-  const quality = signal.quality_score||signal.confidence||75;
-  
-  // Confidence label
-  const confLabel = quality>=85?'HIGH CONFIDENCE':quality>=75?'MODERATE CONFIDENCE':'STANDARD SETUP';
-  const confEmoji = quality>=85?'🔥':quality>=75?'⚡':'📊';
-  
-  // Session
-  const h = new Date().getUTCHours();
-  const nigeriaH = (h+1)%24;
-  const session = h>=7&&h<12?'London Session':h>=12&&h<16?'NY Session (London/NY Overlap)':'Off-Peak Session';
-  
-  // Risk level
-  const riskLevel = quality>=85?'STANDARD SCALP':quality>=75?'MODERATE RISK SCALP':'HIGH RISK SCALP';
-  const riskEmoji = quality>=85?'✅':'⚠️';
-  
-  // Asset type
+  const quality = parseInt(signal.quality_score||signal.confidence||75);
+  const isBuy = signal.dir==='buy';
   const isMetal = signal.sym==='XAUUSD'||signal.sym==='XAGUSD';
   const isCrypto = signal.sym==='BTCUSD'||signal.sym==='ETHUSD';
+
+  // Direction
+  const dirLine = isBuy
+    ? '\u25b2 Action: \ud83d\udfe2 LONG (BUY)'
+    : '\u25bc Action: \ud83d\udd34 SHORT (SELL)';
+
+  // Confidence label
+  const confLabel = quality>=85?'HIGH':quality>=75?'MODERATE':'STANDARD';
+
+  // Aggression level based on quality + indicators
+  let aggression = 'STANDARD SCALP';
+  let aggrEmoji = '\u26a1';
+  if(quality>=88){
+    aggression = isBuy?'\ud83d\udfe2 AGGRESSIVE BUY':'\ud83d\udd34 AGGRESSIVE SELL';
+    aggrEmoji = '\ud83d\udd25';
+  } else if(quality>=80){
+    aggression = isBuy?'\ud83d\udfe2 STRONG BUY':'\ud83d\udd34 STRONG SELL';
+    aggrEmoji = '\u2705';
+  } else if(quality>=70){
+    aggression = isBuy?'\ud83d\udfe2 MODERATE BUY':'\ud83d\udd34 MODERATE SELL';
+    aggrEmoji = '\u26a1';
+  } else {
+    aggression = isBuy?'\ud83d\udfe2 CAUTIOUS BUY':'\ud83d\udd34 CAUTIOUS SELL';
+    aggrEmoji = '\u26a0\ufe0f';
+  }
+
+  // Risk warning
+  const riskNote = quality>=85
+    ? 'Setup has strong confluence. Execute with normal position size.'
+    : quality>=75
+    ? 'Good setup but confirm candle close before entering.'
+    : 'Moderate setup. Use reduced position size (0.5-1% risk).';
+
+  // Session
+  const h = new Date().getUTCHours();
+  const ng = (h+1)%24;
+  const session = h>=7&&h<12?'London Session'
+    :h>=12&&h<16?'NY Session (London/NY Overlap)'
+    :h>=16&&h<22?'Sydney Session'
+    :'Tokyo Session';
+
+  // Asset tag
   const assetTag = isMetal?'#METALS':isCrypto?'#CRYPTO':'#FOREX';
 
-  const msg = 
-`⚡ *AXION SCALP ALERT (M15)* ⚡
-━━━━━━━━━━━━━━━━━━━━
-${dirEmoji} *Asset:* ${signal.pair} ${assetTag}
-*Action:* ${dir}
-*Confidence:* ${quality}.0%
+  // Entry note based on quality
+  const entryNote = quality>=85
+    ? 'Enter at OPEN of next M15 candle after current one closes. Signal is strong.'
+    : 'Wait for current M15 candle to FULLY CLOSE then enter at next candle open. Do not enter mid-candle.';
 
-📍 *ENTRY:* ${signal.entry}
-🎯 *TP:* ${signal.tp}
-🛡 *SL:* ${signal.sl}
-⚖️ *R:R Ratio:* ${signal.rr}
+  const msg =
+`\u26a1 *AXION SCALP ALERT (M15)* \u26a1
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\ud83d\udcca *Asset:* ${signal.pair} ${assetTag}
+${dirLine}
+*Confidence:* ${quality}% — *${confLabel}*
 
-🧠 *AI Insight:*
-_${signal.reason||'Technical confluence confirmed'}_
+\ud83d\udccd *ENTRY:* \`${signal.entry}\`
+\ud83c\udfaf *TP:* \`${signal.tp}\`
+\ud83d\udee1 *SL:* \`${signal.sl}\`
+\u2696\ufe0f *R:R Ratio:* ${signal.rr}
 
-${riskEmoji} *${riskLevel}:* _This is a 15-minute momentum setup. Wait for current M15 candle to CLOSE before entering. Do not enter if you are late to the signal._
+${aggrEmoji} *${aggression}*
+_All indicators checked: H1 trend + M15 EMA + RSI + MACD_
 
-📋 *Coach's Note:*
-_${signal.dir==='buy'?
-  'Price showing bullish momentum. Enter at open of next candle after confirmation close. Trail SL once +'+( isMetal?'$10':'10 pips')+' in profit.':
-  'Price showing bearish momentum. Enter at open of next candle after confirmation close. Trail SL once '+( isMetal?'$10':'10 pips')+' in profit.'}_
+\ud83e\udde0 *AI Insight:*
+_${signal.reason||'Technical confluence confirmed on M15 timeframe'}_
 
-⚠️ *PORTFOLIO WARNING:*
-_Do not take every signal. Avoid over-leveraging on correlated assets. Max 1-2% risk per trade._
+\u23f0 *Entry Timing:*
+_${entryNote}_
 
-⏰ *Session:* ${session} | Nigeria: ${nigeriaH}:00
-📊 *Powered by Axion Signals*`;
+\u26a0\ufe0f *Risk Note:*
+_${riskNote}_
+
+\ud83d\udcdd *Coach Note:*
+_Leave emotions at the door. Follow the signal rules. If you missed the entry candle — SKIP this trade and wait for the next signal._
+
+\u26a0\ufe0f *PORTFOLIO WARNING:*
+_Max 1-2% risk per trade. Do not take every signal. Avoid overtrading correlated pairs._
+
+\u23f0 *Session:* ${session} | Nigeria: ${ng}:00
+\ud83d\udcca _Powered by Axion Signals — Precision Scalping System_`;
 
   return msg;
 }
+
 
 async function sendTelegram(signal) {
   // Handle custom messages (session alerts, no signal notifications)

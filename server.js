@@ -627,6 +627,26 @@ Respond ONLY with valid JSON:
       }
     }
 
+    // Fix 1 — Remove duplicate signals (keep highest quality per pair)
+    const seen = {};
+    const dedupedSignals = [];
+    for(const sig of parsed.signals){
+      const key = sig.sym;
+      if(!seen[key]){
+        seen[key] = true;
+        dedupedSignals.push(sig);
+      } else {
+        // Keep highest quality
+        const existing = dedupedSignals.find(s=>s.sym===key);
+        if(existing && (sig.quality_score||0) > (existing.quality_score||0)){
+          const idx = dedupedSignals.indexOf(existing);
+          dedupedSignals[idx] = sig;
+        }
+      }
+    }
+    parsed.signals = dedupedSignals;
+    addLog('[Server AI] After dedup: '+parsed.signals.length+' signals');
+
     // Save to performance tracker — avoid duplicates within 30 min
     const perf = loadPerformance();
     const thirtyMinsAgo = Date.now() - 30*60*1000;
