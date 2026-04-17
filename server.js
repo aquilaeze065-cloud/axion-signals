@@ -44,18 +44,17 @@ async function fetchAll(){
     p.XAGUSD=cache.prices?.XAGUSD||(parseFloat(p.XAUUSD||'4497')/66).toFixed(3);
     console.log('[Silver] fallback $'+p.XAGUSD);
   }
-  // Fetch BTC price
+  // Fetch BTC + ETH from CoinGecko (free, no API key needed)
   try{
-    const bd=await fetchJSON('https://api.twelvedata.com/price?symbol=BTC/USD&apikey='+process.env.TWELVE_KEY);
-    if(bd&&bd.price){p.BTCUSD=parseFloat(bd.price).toFixed(2);console.log('[BTC] $'+p.BTCUSD);}
-    else throw new Error('no price');
-  }catch(e){p.BTCUSD=cache.prices?.BTCUSD||'67891.00';}
-  // Fetch ETH price
-  try{
-    const ed=await fetchJSON('https://api.twelvedata.com/price?symbol=ETH/USD&apikey='+process.env.TWELVE_KEY);
-    if(ed&&ed.price){p.ETHUSD=parseFloat(ed.price).toFixed(2);console.log('[ETH] $'+p.ETHUSD);}
-    else throw new Error('no price');
-  }catch(e){p.ETHUSD=cache.prices?.ETHUSD||'2055.00';}
+    const crypto = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd');
+    if(crypto.bitcoin) p.BTCUSD = crypto.bitcoin.usd.toFixed(2);
+    if(crypto.ethereum) p.ETHUSD = crypto.ethereum.usd.toFixed(2);
+    addLog('[Crypto] BTC:$'+p.BTCUSD+' ETH:$'+p.ETHUSD);
+  }catch(e){
+    addLog('[Crypto] CoinGecko failed: '+e.message);
+    p.BTCUSD = cache.prices?.BTCUSD||'67891.00';
+    p.ETHUSD = cache.prices?.ETHUSD||'2055.00';
+  }
   p.ts=now;cache.prices=p;cache.lastUpdate=now;
   return p;
 }
