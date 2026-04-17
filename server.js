@@ -16,7 +16,7 @@ function fetchJSON(u){return new Promise((res,rej)=>{const r=https.get(u,{header
 
 async function fetchAll(){
   const now=Date.now();
-  if(cache.prices&&now-cache.lastUpdate<15000)return cache.prices;
+  if(cache.prices&&now-cache.lastUpdate<30000)return cache.prices;
   const p={};
   try{const d=await fetchJSON('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,CAD,CHF,NZD');const r=d.rates;p.EURUSD=(1/r.EUR).toFixed(5);p.GBPUSD=(1/r.GBP).toFixed(5);p.USDJPY=r.JPY.toFixed(3);p.AUDUSD=(1/r.AUD).toFixed(5);p.USDCAD=r.CAD.toFixed(5);p.USDCHF=r.CHF.toFixed(5);p.NZDUSD=(1/r.NZD).toFixed(5);p.EURGBP=(r.GBP/r.EUR).toFixed(5);addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);}catch(e){console.error('[Forex]',e.message);if(cache.prices)['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{if(cache.prices[k])p[k]=cache.prices[k];});}
   try{
