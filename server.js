@@ -18,44 +18,75 @@ async function fetchAll(){
   const now=Date.now();
   if(cache.prices&&now-cache.lastUpdate<30000)return cache.prices;
   const p={};
-  try{const d=await fetchJSON('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,CAD,CHF,NZD');const r=d.rates;p.EURUSD=(1/r.EUR).toFixed(5);p.GBPUSD=(1/r.GBP).toFixed(5);p.USDJPY=r.JPY.toFixed(3);p.AUDUSD=(1/r.AUD).toFixed(5);p.USDCAD=r.CAD.toFixed(5);p.USDCHF=r.CHF.toFixed(5);p.NZDUSD=(1/r.NZD).toFixed(5);p.EURGBP=(r.GBP/r.EUR).toFixed(5);addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);}catch(e){console.error('[Forex]',e.message);if(cache.prices)['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{if(cache.prices[k])p[k]=cache.prices[k];});}
+
+  // FOREX — ExchangeRate-API (free, real-time)
+  try{
+    const fx=await fetchJSON('https://open.er-api.com/v6/latest/USD');
+    if(fx&&fx.rates){
+      const r=fx.rates;
+      p.EURUSD=(1/r.EUR).toFixed(5);
+      p.GBPUSD=(1/r.GBP).toFixed(5);
+      p.USDJPY=r.JPY.toFixed(3);
+      p.AUDUSD=(1/r.AUD).toFixed(5);
+      p.USDCAD=r.CAD.toFixed(5);
+      p.USDCHF=r.CHF.toFixed(5);
+      p.NZDUSD=(1/r.NZD).toFixed(5);
+      p.EURGBP=(r.GBP/r.EUR).toFixed(5);
+      addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);
+    }
+  }catch(e){
+    addLog('[Forex] Failed:'+e.message);
+    if(cache.prices){
+      ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{
+        if(cache.prices[k])p[k]=cache.prices[k];
+      });
+    }
+  }
+
+  // METALS — Swissquote (free, real-time)
   try{
     const gd=await fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
     if(gd&&gd[0]&&gd[0].spreadProfilePrices){
       const bid=gd[0].spreadProfilePrices[0].bid;
       const ask=gd[0].spreadProfilePrices[0].ask;
       p.XAUUSD=((bid+ask)/2).toFixed(2);
-      console.log('[Gold RT] $'+p.XAUUSD);
-    }else throw new Error('no price');
+    }
   }catch(e){
-    console.error('[Gold RT failed]',e.message);
-    p.XAUUSD=cache.prices?.XAUUSD||'4497.00';
-    console.log('[Gold] using cached $'+p.XAUUSD);
+    addLog('[Gold] Failed:'+e.message);
+    if(cache.prices&&cache.prices.XAUUSD)p.XAUUSD=cache.prices.XAUUSD;
+    else p.XAUUSD='3200.00';
   }
+
   try{
     const sd=await fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAG/USD');
     if(sd&&sd[0]&&sd[0].spreadProfilePrices){
       const bid=sd[0].spreadProfilePrices[0].bid;
       const ask=sd[0].spreadProfilePrices[0].ask;
       p.XAGUSD=((bid+ask)/2).toFixed(3);
-      console.log('[Silver RT] $'+p.XAGUSD);
-    }else throw new Error('no price');
+    }
   }catch(e){
-    p.XAGUSD=cache.prices?.XAGUSD||(parseFloat(p.XAUUSD||'4497')/66).toFixed(3);
-    console.log('[Silver] fallback $'+p.XAGUSD);
+    addLog('[Silver] Failed:'+e.message);
+    if(cache.prices&&cache.prices.XAGUSD)p.XAGUSD=cache.prices.XAGUSD;
+    else p.XAGUSD='32.000';
   }
-  // Fetch BTC + ETH from CoinGecko (free, no API key needed)
+
+  // CRYPTO — CoinGecko (free, no key)
   try{
-    const crypto = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd');
-    if(crypto.bitcoin) p.BTCUSD = crypto.bitcoin.usd.toFixed(2);
-    if(crypto.ethereum) p.ETHUSD = crypto.ethereum.usd.toFixed(2);
+    const cg=await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd');
+    if(cg.bitcoin)p.BTCUSD=cg.bitcoin.usd.toFixed(2);
+    if(cg.ethereum)p.ETHUSD=cg.ethereum.usd.toFixed(2);
     addLog('[Crypto] BTC:$'+p.BTCUSD+' ETH:$'+p.ETHUSD);
   }catch(e){
-    addLog('[Crypto] CoinGecko failed: '+e.message);
-    p.BTCUSD = cache.prices?.BTCUSD||'67891.00';
-    p.ETHUSD = cache.prices?.ETHUSD||'2055.00';
+    addLog('[Crypto] Failed:'+e.message);
+    if(cache.prices&&cache.prices.BTCUSD)p.BTCUSD=cache.prices.BTCUSD;
+    else p.BTCUSD='84000.00';
+    if(cache.prices&&cache.prices.ETHUSD)p.ETHUSD=cache.prices.ETHUSD;
+    else p.ETHUSD='1600.00';
   }
-  p.ts=now;cache.prices=p;cache.lastUpdate=now;
+
+  p.ts=Date.now();
+  cache.prices=p;
+  cache.lastUpdate=now;
   return p;
 }
 
