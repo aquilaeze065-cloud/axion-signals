@@ -16,34 +16,59 @@ function fetchJSON(u){return new Promise((res,rej)=>{const r=https.get(u,{header
 
 async function fetchAll(){
   const now=Date.now();
-  if(cache.prices&&now-cache.lastUpdate<30000)return cache.prices;
+  if(cache.prices&&now-cache.lastUpdate<300000)return cache.prices; // cache 5 min = 288 calls/day
   const p={};
 
-  // FOREX — ExchangeRate-API (free, real-time)
+  // FOREX — Twelve Data real-time prices (most accurate)
   try{
-    const fx=await fetchJSON('https://open.er-api.com/v6/latest/USD');
-    if(fx&&fx.rates){
-      const r=fx.rates;
-      p.EURUSD=(1/r.EUR).toFixed(5);
-      p.GBPUSD=(1/r.GBP).toFixed(5);
-      p.USDJPY=r.JPY.toFixed(3);
-      p.AUDUSD=(1/r.AUD).toFixed(5);
-      p.USDCAD=r.CAD.toFixed(5);
-      p.USDCHF=r.CHF.toFixed(5);
-      p.NZDUSD=(1/r.NZD).toFixed(5);
-      p.EURGBP=(r.GBP/r.EUR).toFixed(5);
-      addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);
-    }
+    const pairs=[
+      {sym:'EUR/USD',key:'EURUSD',dec:5},
+      {sym:'GBP/USD',key:'GBPUSD',dec:5},
+      {sym:'USD/JPY',key:'USDJPY',dec:3},
+      {sym:'AUD/USD',key:'AUDUSD',dec:5},
+      {sym:'USD/CAD',key:'USDCAD',dec:5},
+      {sym:'USD/CHF',key:'USDCHF',dec:5},
+      {sym:'NZD/USD',key:'NZDUSD',dec:5},
+      {sym:'EUR/GBP',key:'EURGBP',dec:5},
+    ];
+    // Batch request - uses only 1 API call for all pairs!
+    const symbols=pairs.map(p=>p.sym).join(',');
+    const d=await fetchJSON('https://api.twelvedata.com/price?symbol='+encodeURIComponent(symbols)+'&apikey='+TWELVE_KEY);
+    pairs.forEach(pair=>{
+      const key=pair.sym.replace('/','/');
+      const val=d[pair.sym]||d[pair.sym.replace('/','_')];
+      if(val&&val.price){
+        p[pair.key]=parseFloat(val.price).toFixed(pair.dec);
+      }
+    });
+    addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);
   }catch(e){
-    addLog('[Forex] Failed:'+e.message);
-    if(cache.prices){
-      ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{
-        if(cache.prices[k])p[k]=cache.prices[k];
-      });
+    addLog('[Forex] Twelve Data failed:'+e.message+' - using fallback');
+    // Fallback to ExchangeRate-API
+    try{
+      const fx=await fetchJSON('https://open.er-api.com/v6/latest/USD');
+      if(fx&&fx.rates){
+        const r=fx.rates;
+        p.EURUSD=(1/r.EUR).toFixed(5);
+        p.GBPUSD=(1/r.GBP).toFixed(5);
+        p.USDJPY=r.JPY.toFixed(3);
+        p.AUDUSD=(1/r.AUD).toFixed(5);
+        p.USDCAD=r.CAD.toFixed(5);
+        p.USDCHF=r.CHF.toFixed(5);
+        p.NZDUSD=(1/r.NZD).toFixed(5);
+        p.EURGBP=(r.GBP/r.EUR).toFixed(5);
+        addLog('[Forex] Fallback EUR:'+p.EURUSD);
+      }
+    }catch(e2){
+      if(cache.prices){
+        ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{
+          if(cache.prices[k])p[k]=cache.prices[k];
+        });
+      }
     }
   }
 
-  // METALS — Swissquote (free, real-time)
+  // METALS — Swissquote (free, real-time, no API key)
   try{
     const gd=await fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
     if(gd&&gd[0]&&gd[0].spreadProfilePrices){
@@ -54,7 +79,6 @@ async function fetchAll(){
   }catch(e){
     addLog('[Gold] Failed:'+e.message);
     if(cache.prices&&cache.prices.XAUUSD)p.XAUUSD=cache.prices.XAUUSD;
-    else p.XAUUSD='3200.00';
   }
 
   try{
@@ -67,10 +91,9 @@ async function fetchAll(){
   }catch(e){
     addLog('[Silver] Failed:'+e.message);
     if(cache.prices&&cache.prices.XAGUSD)p.XAGUSD=cache.prices.XAGUSD;
-    else p.XAGUSD='32.000';
   }
 
-  // CRYPTO — CoinGecko (free, no key)
+  // CRYPTO — CoinGecko (free, no key needed)
   try{
     const cg=await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd');
     if(cg.bitcoin)p.BTCUSD=cg.bitcoin.usd.toFixed(2);
@@ -78,10 +101,10 @@ async function fetchAll(){
     addLog('[Crypto] BTC:$'+p.BTCUSD+' ETH:$'+p.ETHUSD);
   }catch(e){
     addLog('[Crypto] Failed:'+e.message);
-    if(cache.prices&&cache.prices.BTCUSD)p.BTCUSD=cache.prices.BTCUSD;
-    else p.BTCUSD='84000.00';
-    if(cache.prices&&cache.prices.ETHUSD)p.ETHUSD=cache.prices.ETHUSD;
-    else p.ETHUSD='1600.00';
+    if(cache.prices){
+      if(cache.prices.BTCUSD)p.BTCUSD=cache.prices.BTCUSD;
+      if(cache.prices.ETHUSD)p.ETHUSD=cache.prices.ETHUSD;
+    }
   }
 
   p.ts=Date.now();
@@ -1146,14 +1169,22 @@ http.createServer(async(req,res)=>{
     addLog('[Server AI] Starting auto signal engine...');
     await fetchAllCandles().catch(e=>console.error('[Candles]',e.message));
     await generateServerSignals();
-    // Run every 10 minutes automatically
+    // Run 3x per day at optimal times only - saves API calls
+    // London open: 7AM UTC, NY open: 1PM UTC, Overlap: 11AM UTC
     setInterval(async()=>{
-      addLog('[Server AI] Auto scanning...');
-      await generateServerSignals();
-    }, 10*60*1000);
+      const h=new Date().getUTCHours();
+      const m=new Date().getUTCMinutes();
+      const isHoliday=isMarketHoliday();
+      // Generate at: 7AM, 9AM, 11AM, 1PM, 3PM UTC (5 times daily)
+      const signalHours=[7,9,11,13,15];
+      if(signalHours.includes(h) && m<10){
+        addLog('[Server AI] Scheduled scan at '+h+'h UTC...');
+        await generateServerSignals();
+      }
+    }, 10*60*1000); // check every 10 min but only fire at scheduled hours
   }, 10000); // Wait 10 seconds after startup
   console.log('  Prices test  →  http://localhost:'+PORT+'/api/test');
   console.log('  Claude proxy →  http://localhost:'+PORT+'/api/claude\n');
   await fetchAll();
-  setInterval(fetchAll,15000);
+  setInterval(fetchAll,300000); // every 5 minutes = 288 calls/day within free tier
 });
