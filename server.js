@@ -16,37 +16,19 @@ function fetchJSON(u){return new Promise((res,rej)=>{const r=https.get(u,{header
 
 async function fetchAll(){
   const now=Date.now();
-  if(cache.prices&&now-cache.lastUpdate<300000)return cache.prices; // cache 5 min = 288 calls/day
+  if(cache.prices&&now-cache.lastUpdate<300000)return cache.prices;
   const p={};
 
-  // FOREX — Twelve Data real-time prices (most accurate)
-  try{
-    const pairs=[
-      {sym:'EUR/USD',key:'EURUSD',dec:5},
-      {sym:'GBP/USD',key:'GBPUSD',dec:5},
-      {sym:'USD/JPY',key:'USDJPY',dec:3},
-      {sym:'AUD/USD',key:'AUDUSD',dec:5},
-      {sym:'USD/CAD',key:'USDCAD',dec:5},
-      {sym:'USD/CHF',key:'USDCHF',dec:5},
-      {sym:'NZD/USD',key:'NZDUSD',dec:5},
-      {sym:'EUR/GBP',key:'EURGBP',dec:5},
-    ];
-    // Batch request - uses only 1 API call for all pairs!
-    const symbols=pairs.map(p=>p.sym).join(',');
-    const d=await fetchJSON('https://api.twelvedata.com/price?symbol='+encodeURIComponent(symbols)+'&apikey='+TWELVE_KEY);
-    pairs.forEach(pair=>{
-      const key=pair.sym.replace('/','/');
-      const val=d[pair.sym]||d[pair.sym.replace('/','_')];
-      if(val&&val.price){
-        p[pair.key]=parseFloat(val.price).toFixed(pair.dec);
-      }
-    });
-    addLog('[Forex] EUR:'+p.EURUSD+' GBP:'+p.GBPUSD+' JPY:'+p.USDJPY);
-  }catch(e){
-    addLog('[Forex] Twelve Data failed:'+e.message+' - using fallback');
-    // Fallback to ExchangeRate-API
+  // FOREX — Multiple free sources with fallback chain
+  let forexLoaded = false;
+
+  // Source 1: Frankfurter (ECB data, free, reliable)
+  if(!forexLoaded){
     try{
-      const fx=await fetchJSON('https://open.er-api.com/v6/latest/USD');
+      const fx=await Promise.race([
+        fetchJSON('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,CAD,CHF,NZD'),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+      ]);
       if(fx&&fx.rates){
         const r=fx.rates;
         p.EURUSD=(1/r.EUR).toFixed(5);
@@ -57,20 +39,74 @@ async function fetchAll(){
         p.USDCHF=r.CHF.toFixed(5);
         p.NZDUSD=(1/r.NZD).toFixed(5);
         p.EURGBP=(r.GBP/r.EUR).toFixed(5);
-        addLog('[Forex] Fallback EUR:'+p.EURUSD);
+        forexLoaded=true;
+        addLog('[Forex] Frankfurter: EUR:'+p.EURUSD+' GBP:'+p.GBPUSD);
       }
-    }catch(e2){
-      if(cache.prices){
-        ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{
-          if(cache.prices[k])p[k]=cache.prices[k];
-        });
+    }catch(e){ addLog('[Forex] Frankfurter failed:'+e.message); }
+  }
+
+  // Source 2: ExchangeRate-API
+  if(!forexLoaded){
+    try{
+      const fx=await Promise.race([
+        fetchJSON('https://open.er-api.com/v6/latest/USD'),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+      ]);
+      if(fx&&fx.rates){
+        const r=fx.rates;
+        p.EURUSD=(1/r.EUR).toFixed(5);
+        p.GBPUSD=(1/r.GBP).toFixed(5);
+        p.USDJPY=r.JPY.toFixed(3);
+        p.AUDUSD=(1/r.AUD).toFixed(5);
+        p.USDCAD=r.CAD.toFixed(5);
+        p.USDCHF=r.CHF.toFixed(5);
+        p.NZDUSD=(1/r.NZD).toFixed(5);
+        p.EURGBP=(r.GBP/r.EUR).toFixed(5);
+        forexLoaded=true;
+        addLog('[Forex] ExchangeRate-API: EUR:'+p.EURUSD);
       }
+    }catch(e){ addLog('[Forex] ExchangeRate-API failed:'+e.message); }
+  }
+
+  // Source 3: Fawaz Exchange Rate (free, no key)
+  if(!forexLoaded){
+    try{
+      const fx=await Promise.race([
+        fetchJSON('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+      ]);
+      if(fx&&fx.usd){
+        const r=fx.usd;
+        p.EURUSD=(1/r.eur).toFixed(5);
+        p.GBPUSD=(1/r.gbp).toFixed(5);
+        p.USDJPY=r.jpy.toFixed(3);
+        p.AUDUSD=(1/r.aud).toFixed(5);
+        p.USDCAD=r.cad.toFixed(5);
+        p.USDCHF=r.chf.toFixed(5);
+        p.NZDUSD=(1/r.nzd).toFixed(5);
+        p.EURGBP=(r.gbp/r.eur).toFixed(5);
+        forexLoaded=true;
+        addLog('[Forex] Fawaz CDN: EUR:'+p.EURUSD);
+      }
+    }catch(e){ addLog('[Forex] Fawaz failed:'+e.message); }
+  }
+
+  // Source 4: Use cache if all fail
+  if(!forexLoaded){
+    addLog('[Forex] All sources failed - using cache');
+    if(cache.prices){
+      ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP'].forEach(k=>{
+        if(cache.prices[k])p[k]=cache.prices[k];
+      });
     }
   }
 
-  // METALS — Swissquote (free, real-time, no API key)
+  // METALS — Swissquote (free, real-time, no key)
   try{
-    const gd=await fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
+    const gd=await Promise.race([
+      fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD'),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))
+    ]);
     if(gd&&gd[0]&&gd[0].spreadProfilePrices){
       const bid=gd[0].spreadProfilePrices[0].bid;
       const ask=gd[0].spreadProfilePrices[0].ask;
@@ -79,10 +115,14 @@ async function fetchAll(){
   }catch(e){
     addLog('[Gold] Failed:'+e.message);
     if(cache.prices&&cache.prices.XAUUSD)p.XAUUSD=cache.prices.XAUUSD;
+    else p.XAUUSD='3200.00';
   }
 
   try{
-    const sd=await fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAG/USD');
+    const sd=await Promise.race([
+      fetchJSON('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAG/USD'),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))
+    ]);
     if(sd&&sd[0]&&sd[0].spreadProfilePrices){
       const bid=sd[0].spreadProfilePrices[0].bid;
       const ask=sd[0].spreadProfilePrices[0].ask;
@@ -91,19 +131,39 @@ async function fetchAll(){
   }catch(e){
     addLog('[Silver] Failed:'+e.message);
     if(cache.prices&&cache.prices.XAGUSD)p.XAGUSD=cache.prices.XAGUSD;
+    else p.XAGUSD='32.000';
   }
 
-  // CRYPTO — CoinGecko (free, no key needed)
+  // CRYPTO — CoinGecko (free, no key, 5 sec timeout)
   try{
-    const cg=await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd');
+    const cg=await Promise.race([
+      fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+    ]);
     if(cg.bitcoin)p.BTCUSD=cg.bitcoin.usd.toFixed(2);
     if(cg.ethereum)p.ETHUSD=cg.ethereum.usd.toFixed(2);
     addLog('[Crypto] BTC:$'+p.BTCUSD+' ETH:$'+p.ETHUSD);
   }catch(e){
-    addLog('[Crypto] Failed:'+e.message);
-    if(cache.prices){
-      if(cache.prices.BTCUSD)p.BTCUSD=cache.prices.BTCUSD;
-      if(cache.prices.ETHUSD)p.ETHUSD=cache.prices.ETHUSD;
+    addLog('[Crypto] CoinGecko failed:'+e.message+' - trying backup');
+    try{
+      // Backup: Binance public API (no key needed)
+      const bn=await Promise.race([
+        fetchJSON('https://api.binance.com/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT"]'),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+      ]);
+      if(Array.isArray(bn)){
+        const btc=bn.find(x=>x.symbol==='BTCUSDT');
+        const eth=bn.find(x=>x.symbol==='ETHUSDT');
+        if(btc)p.BTCUSD=parseFloat(btc.price).toFixed(2);
+        if(eth)p.ETHUSD=parseFloat(eth.price).toFixed(2);
+        addLog('[Crypto] Binance: BTC:$'+p.BTCUSD+' ETH:$'+p.ETHUSD);
+      }
+    }catch(e2){
+      addLog('[Crypto] All failed - using cache');
+      if(cache.prices&&cache.prices.BTCUSD)p.BTCUSD=cache.prices.BTCUSD;
+      else p.BTCUSD='84000.00';
+      if(cache.prices&&cache.prices.ETHUSD)p.ETHUSD=cache.prices.ETHUSD;
+      else p.ETHUSD='1600.00';
     }
   }
 
