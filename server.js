@@ -730,8 +730,24 @@ Respond ONLY with valid JSON:
 
     addLog('[Server AI] Generated',parsed.signals.length,'signals. Verdict:',parsed.verdict);
 
+    // Filter out weak signals before sending to Telegram
+    const strongSignals = parsed.signals.filter(s=>{
+      const quality = s.quality_score || 0;
+      const hasTP = s.tp && parseFloat(s.tp) !== parseFloat(s.entry);
+      const hasSL = s.sl && parseFloat(s.sl) !== parseFloat(s.entry);
+      const goodRR = s.rr && parseFloat(s.rr.split(':')[1]||0) >= 1.5;
+      return quality >= 70 && hasTP && hasSL && goodRR;
+    });
+
+    if(strongSignals.length === 0){
+      addLog('[Server AI] No strong signals this scan - skipping Telegram');
+      return;
+    }
+
+    addLog('[Server AI] Sending '+strongSignals.length+' strong signals to Telegram');
+
     // Send each signal to Telegram
-    for(const signal of parsed.signals){
+    for(const signal of strongSignals){
       if(signal.tp&&signal.sl&&signal.entry&&
          parseFloat(signal.tp)!==parseFloat(signal.entry)&&
          parseFloat(signal.sl)!==parseFloat(signal.entry)){
@@ -1229,19 +1245,44 @@ http.createServer(async(req,res)=>{
     addLog('[Server AI] Starting auto signal engine...');
     await fetchAllCandles().catch(e=>console.error('[Candles]',e.message));
     await generateServerSignals();
-    // Run 3x per day at optimal times only - saves API calls
-    // London open: 7AM UTC, NY open: 1PM UTC, Overlap: 11AM UTC
+    // 8 signals daily at best market times only
     setInterval(async()=>{
-      const h=new Date().getUTCHours();
-      const m=new Date().getUTCMinutes();
+      const now=new Date();
+      const h=now.getUTCHours();
+      const m=now.getUTCMinutes();
+      const day=now.getUTCDay();
       const isHoliday=isMarketHoliday();
-      // Generate at: 7AM, 9AM, 11AM, 1PM, 3PM UTC (5 times daily)
-      const signalHours=[7,9,11,13,15];
-      if(signalHours.includes(h) && m<10){
-        addLog('[Server AI] Scheduled scan at '+h+'h UTC...');
+      const isWknd=day===0||day===6;
+
+      // Weekday signal times (UTC): 7:00, 8:30, 10:00, 11:30, 13:00, 14:30, 16:00, 19:00
+      // = 8AM, 9:30AM, 11AM, 12:30PM, 2PM, 3:30PM, 5PM, 8PM Nigeria
+      const weekdaySlots=[
+        {h:7,m:0},   // London open
+        {h:8,m:30},  // London mid
+        {h:10,m:0},  // Pre-NY
+        {h:11,m:30}, // London/NY overlap
+        {h:13,m:0},  // NY open
+        {h:14,m:30}, // NY mid
+        {h:16,m:0},  // NY afternoon
+        {h:19,m:0},  // Late session
+      ];
+
+      // Weekend/Holiday: only 4 crypto signals per day
+      const weekendSlots=[
+        {h:8,m:0},
+        {h:12,m:0},
+        {h:16,m:0},
+        {h:20,m:0},
+      ];
+
+      const slots = (isWknd||isHoliday) ? weekendSlots : weekdaySlots;
+      const shouldFire = slots.some(s=>s.h===h&&m>=s.m&&m<s.m+10);
+
+      if(shouldFire){
+        addLog('[Server AI] Scheduled signal at '+h+':'+String(m).padStart(2,'0')+' UTC');
         await generateServerSignals();
       }
-    }, 10*60*1000); // check every 10 min but only fire at scheduled hours
+    }, 5*60*1000); // check every 5 minutes
   }, 10000); // Wait 10 seconds after startup
   console.log('  Prices test  →  http://localhost:'+PORT+'/api/test');
   console.log('  Claude proxy →  http://localhost:'+PORT+'/api/claude\n');
