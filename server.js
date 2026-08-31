@@ -22,12 +22,12 @@ async function fetchAll(){
   // FOREX — Multiple free sources with fallback chain
   let forexLoaded = false;
 
-  // Source 1: Frankfurter (ECB data, free, reliable)
+  // Source 1: ExchangeRate-API (primary - most reliable free source)
   if(!forexLoaded){
     try{
       const fx=await Promise.race([
-        fetchJSON('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,CAD,CHF,NZD'),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+        fetchJSON('https://open.er-api.com/v6/latest/USD'),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))
       ]);
       if(fx&&fx.rates){
         const r=fx.rates;
@@ -40,9 +40,9 @@ async function fetchAll(){
         p.NZDUSD=(1/r.NZD).toFixed(5);
         p.EURGBP=(r.GBP/r.EUR).toFixed(5);
         forexLoaded=true;
-        addLog('[Forex] Frankfurter: EUR:'+p.EURUSD+' GBP:'+p.GBPUSD);
+        addLog('[Forex] ExchangeRate-API: EUR:'+p.EURUSD+' GBP:'+p.GBPUSD);
       }
-    }catch(e){ addLog('[Forex] Frankfurter failed:'+e.message); }
+    }catch(e){ addLog('[Forex] ExchangeRate-API failed:'+e.message); }
   }
 
   // Source 2: ExchangeRate-API
@@ -394,7 +394,7 @@ const TWELVE_SYMBOLS = {
   EURGBP:  'EUR/GBP',
   NZDUSD:  'NZD/USD',
   XAUUSD:  'XAU/USD',
-  XAGUSD:  'XAG/USD',
+  // XAGUSD: 'XAG/USD', // Not available on free Twelve Data tier
   BTCUSD:  'BTC/USD',
   ETHUSD:  'ETH/USD',
 };
