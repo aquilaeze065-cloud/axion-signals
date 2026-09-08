@@ -288,9 +288,13 @@ If candle data is missing or shows (no candle data) — still generate signals b
     const res=await fetch('/api/groq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'You are a professional forex scalping AI. Always respond with valid JSON only, no markdown.'},{role:'user',content:prompt}]})});
     const data=await res.json();
     if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
-    const raw=data.choices?.[0]?.message?.content||'';
-    const json=raw.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(json);
+    let raw=data.choices?.[0]?.message?.content||'';
+    raw=raw.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
+    raw=raw.replace(/```json|```/g,'').trim();
+    const jsonStart=raw.indexOf('{');
+    const jsonEnd=raw.lastIndexOf('}');
+    if(jsonStart>-1&&jsonEnd>-1) raw=raw.slice(jsonStart,jsonEnd+1);
+    const parsed=JSON.parse(raw);
     // If AI says insufficient data, force it to try again with simpler prompt
     if(parsed.summary&&parsed.summary.toLowerCase().includes('insufficient')){
       console.log('[AI] Insufficient data - retrying with price-only mode');

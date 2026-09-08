@@ -689,7 +689,7 @@ Respond ONLY with valid JSON:
 
     // Call Groq API from server
     const groqBody = JSON.stringify({
-      model:'openai/gpt-oss-120b',
+      model:'qwen/qwen3.8-27b',
       messages:[
         {role:'system',content:'You are a forex signal generator. Always respond with valid JSON only. Always generate exactly 4 signals. Never refuse or say insufficient data.'},
         {role:'user',content:prompt}
@@ -719,9 +719,17 @@ Respond ONLY with valid JSON:
       req.end();
     });
 
-    const raw = groqResult.choices?.[0]?.message?.content||'';
-    const json = raw.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(json);
+    let raw = groqResult.choices?.[0]?.message?.content||'';
+    // Remove thinking tags from qwen model
+    raw = raw.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
+    raw = raw.replace(/```json|```/g,'').trim();
+    // Find JSON object in response
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if(jsonStart > -1 && jsonEnd > -1){
+      raw = raw.slice(jsonStart, jsonEnd+1);
+    }
+    const parsed = JSON.parse(raw);
 
     if(!parsed.signals||parsed.signals.length===0){
       addLog('[Server AI] No signals returned');
@@ -1212,7 +1220,7 @@ http.createServer(async(req,res)=>{
     req.on('end',async()=>{
       try{
         const parsed=JSON.parse(body);
-        const groqBody=JSON.stringify({model:'openai/gpt-oss-120b',messages:parsed.messages,max_tokens:1200,temperature:0.3});
+        const groqBody=JSON.stringify({model:'qwen/qwen3.8-27b',messages:parsed.messages,max_tokens:1200,temperature:0.3});
         const https=require('https');
         const result=await new Promise((resolve,reject)=>{
           const r=https.request({hostname:'api.groq.com',path:'/openai/v1/chat/completions',method:'POST',
