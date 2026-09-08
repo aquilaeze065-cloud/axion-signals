@@ -694,7 +694,7 @@ Respond ONLY with valid JSON:
         {role:'system',content:'You are a forex signal generator. Always respond with valid JSON only. Always generate exactly 4 signals. Never refuse or say insufficient data.'},
         {role:'user',content:prompt}
       ],
-      max_tokens:600,
+      max_tokens:900,
       temperature:0.2
     });
 
@@ -719,16 +719,17 @@ Respond ONLY with valid JSON:
       req.end();
     });
 
-    let raw = groqResult.choices?.[0]?.message?.content||'';
-    // Remove thinking tags from qwen model
+    const msg = groqResult.choices?.[0]?.message||{};
+    // Try content first, then reasoning field
+    let raw = msg.content || msg.reasoning || '';
     raw = raw.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
     raw = raw.replace(/```json|```/g,'').trim();
-    // Find JSON object in response
     const jsonStart = raw.indexOf('{');
     const jsonEnd = raw.lastIndexOf('}');
     if(jsonStart > -1 && jsonEnd > -1){
       raw = raw.slice(jsonStart, jsonEnd+1);
     }
+    if(!raw) throw new Error('Empty response from AI model');
     const parsed = JSON.parse(raw);
 
     if(!parsed.signals||parsed.signals.length===0){
