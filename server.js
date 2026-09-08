@@ -694,7 +694,7 @@ Respond ONLY with valid JSON:
         {role:'system',content:'You are a forex signal generator. Always respond with valid JSON only. Always generate exactly 4 signals. Never refuse or say insufficient data.'},
         {role:'user',content:prompt}
       ],
-      max_tokens:2000,
+      max_tokens:800,
       temperature:0.2
     });
 
